@@ -61,7 +61,7 @@
                                 FontFamily="Segoe Fluent Icons"
                                 FontSize="14"
                                 Glyph="&#xe77e;" />
-                            <TextBlock Text="回调" />
+                            <TextBlock Text="回调/消息" />
                         </StackPanel>
                     </essential:SegmentedItem>
                     <essential:SegmentedItem x:Name="MiniFilterSegmentedItem">
@@ -288,8 +288,8 @@
                                 Background="Transparent"
                                 ContainerContentChanging="MonitorListView_ContainerContentChanging"
                                 ItemContainerStyle="{StaticResource ListViewItemStyle}"
-                                Tag="{x:Bind ObjectRevealFocusPanel}"
-                                Tapped="ObjectListView_Tapped">
+                                RightTapped="ObjectListView_RightTapped"
+                                Tag="{x:Bind ObjectRevealFocusPanel}">
                                 <ListView.ItemTemplate>
                                     <DataTemplate>
                                         <Grid Height="50">
@@ -436,6 +436,7 @@
                             Background="Transparent"
                             ContainerContentChanging="MonitorListView_ContainerContentChanging"
                             ItemContainerStyle="{StaticResource ListViewItemStyle}"
+                            RightTapped="CallbackListView_RightTapped"
                             Tag="{x:Bind CallbackRevealFocusPanel}">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
@@ -535,7 +536,7 @@
                         HorizontalAlignment="Stretch"
                         BorderBrush="{ThemeResource SystemControlBackgroundBaseLowBrush}"
                         BorderThickness="1,0,0,0"
-                        Content="过滤器"
+                        Content="基址"
                         CornerRadius="0" />
                     <Button
                         Grid.Column="2"
@@ -568,6 +569,7 @@
                             Background="Transparent"
                             ContainerContentChanging="MonitorListView_ContainerContentChanging"
                             ItemContainerStyle="{StaticResource ListViewItemStyle}"
+                            RightTapped="MiniFilterListView_RightTapped"
                             Tag="{x:Bind MiniFilterRevealFocusPanel}">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
@@ -599,7 +601,7 @@
                                             BorderBrush="{ThemeResource SystemControlBackgroundBaseLowBrush}"
                                             BorderThickness="0,0,1,0" />
 
-                                        <!--  过滤器  -->
+                                        <!--  基址  -->
                                         <TextBlock
                                             Grid.Column="1"
                                             Margin="24,0,0,0"
@@ -694,7 +696,7 @@
                         HorizontalAlignment="Stretch"
                         BorderBrush="{ThemeResource SystemControlBackgroundBaseLowBrush}"
                         BorderThickness="1,0,0,0"
-                        Content="驱动对象"
+                        Content="设备对象"
                         CornerRadius="0" />
                     <Button
                         Grid.Column="3"
@@ -719,6 +721,7 @@
                             Background="Transparent"
                             ContainerContentChanging="MonitorListView_ContainerContentChanging"
                             ItemContainerStyle="{StaticResource ListViewItemStyle}"
+                            RightTapped="StdFilterListView_RightTapped"
                             Tag="{x:Bind StdFilterRevealFocusPanel}">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
@@ -768,7 +771,7 @@
                                             BorderBrush="{ThemeResource SystemControlBackgroundBaseLowBrush}"
                                             BorderThickness="0,0,1,0" />
 
-                                        <!--  驱动对象  -->
+                                        <!--  设备对象  -->
                                         <TextBlock
                                             Grid.Column="2"
                                             Margin="24,0,0,0"
@@ -879,6 +882,7 @@
                             Background="Transparent"
                             ContainerContentChanging="MonitorListView_ContainerContentChanging"
                             ItemContainerStyle="{StaticResource ListViewItemStyle}"
+                            RightTapped="SSDTListView_RightTapped"
                             Tag="{x:Bind SSDTRevealFocusPanel}">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
@@ -1058,6 +1062,7 @@
                             Background="Transparent"
                             ContainerContentChanging="MonitorListView_ContainerContentChanging"
                             ItemContainerStyle="{StaticResource ListViewItemStyle}"
+                            RightTapped="SSDTListView_RightTapped"
                             Tag="{x:Bind SSSDTRevealFocusPanel}">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
@@ -1348,6 +1353,7 @@
                             Background="Transparent"
                             ContainerContentChanging="MonitorListView_ContainerContentChanging"
                             ItemContainerStyle="{StaticResource ListViewItemStyle}"
+                            RightTapped="ExCallbackListView_RightTapped"
                             Tag="{x:Bind ExCallbackRevealFocusPanel}">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
@@ -1842,6 +1848,7 @@
                             Background="Transparent"
                             ContainerContentChanging="MonitorListView_ContainerContentChanging"
                             ItemContainerStyle="{StaticResource ListViewItemStyle}"
+                            RightTapped="PiDDBListView_RightTapped"
                             Tag="{x:Bind PiDDBRevealFocusPanel}">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
@@ -1953,6 +1960,7 @@
                             Background="Transparent"
                             ContainerContentChanging="MonitorListView_ContainerContentChanging"
                             ItemContainerStyle="{StaticResource ListViewItemStyle}"
+                            RightTapped="HALDPTListView_RightTapped"
                             Tag="{x:Bind HALDPTRevealFocusPanel}">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
@@ -2048,6 +2056,7 @@
                             Background="Transparent"
                             ContainerContentChanging="MonitorListView_ContainerContentChanging"
                             ItemContainerStyle="{StaticResource ListViewItemStyle}"
+                            RightTapped="HALDPTListView_RightTapped"
                             Tag="{x:Bind HALPDPTRevealFocusPanel}">
                             <ListView.ItemTemplate>
                                 <DataTemplate>

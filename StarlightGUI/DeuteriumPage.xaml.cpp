@@ -81,7 +81,7 @@ namespace winrt::StarlightGUI::implementation
             }
         }
         else {
-            CreateInfoBarAndDisplay(L"失败", L"分配失败: 执行请求时出错, Error: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_mainWindowInstance);
+            CreateInfoBarAndDisplay(L"失败", L"分配失败: 执行请求时出错", InfoBarSeverity::Error, g_mainWindowInstance);
         }
 
         co_return;

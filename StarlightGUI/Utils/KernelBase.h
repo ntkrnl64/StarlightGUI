@@ -47,7 +47,7 @@ namespace winrt::StarlightGUI::implementation {
 		static BOOL EnumProcessKernelCallbackTable(ULONG64 eprocess, std::vector<winrt::StarlightGUI::KCTInfo>& threads) noexcept;
 		static BOOL EnumDrivers(std::vector<winrt::StarlightGUI::KernelModuleInfo>& kernelModules) noexcept;
 		static BOOL EnumObjectsByDirectory(std::wstring objectPath, std::vector<winrt::StarlightGUI::ObjectEntry>& objectList) noexcept;
-		static BOOL EnumCallbacks(std::vector<winrt::StarlightGUI::GeneralEntry>& callbacks) noexcept;
+		static BOOL EnumNotifies(std::vector<winrt::StarlightGUI::GeneralEntry>& callbacks) noexcept;
 		static BOOL EnumMiniFilter(std::vector<winrt::StarlightGUI::GeneralEntry>& miniFilters) noexcept;
 		static BOOL EnumStandardFilter(std::vector<winrt::StarlightGUI::GeneralEntry>& filters) noexcept;
 		static BOOL EnumSSDT(std::vector<winrt::StarlightGUI::GeneralEntry>& ssdts) noexcept;
@@ -60,6 +60,14 @@ namespace winrt::StarlightGUI::implementation {
 		static BOOL EnumHalDispatchTable(std::vector<winrt::StarlightGUI::GeneralEntry>& halEntries) noexcept;
 		static BOOL EnumHalPrivateDispatchTable(std::vector<winrt::StarlightGUI::GeneralEntry>& halPrivateEntries) noexcept;
 
+		// Kernel Objects
+		static BOOL RemoveNotify(winrt::StarlightGUI::GeneralEntry& entry) noexcept;
+		static BOOL RemoveMiniFilter(winrt::StarlightGUI::GeneralEntry& entry) noexcept;
+		static BOOL RemoveStandardFilter(winrt::StarlightGUI::GeneralEntry& entry) noexcept;
+		static BOOL UnhookSSDT(winrt::StarlightGUI::GeneralEntry& entry) noexcept;
+		static BOOL UnhookSSSDT(winrt::StarlightGUI::GeneralEntry& entry) noexcept;
+		static BOOL RemoveExCallback(winrt::StarlightGUI::GeneralEntry& entry) noexcept;
+		static BOOL RemovePiDDBCache(winrt::StarlightGUI::GeneralEntry& entry) noexcept;
 
 		// File
 		static BOOL QueryFile(std::wstring path, std::vector<winrt::StarlightGUI::FileInfo>& files) noexcept;
@@ -90,6 +98,8 @@ namespace winrt::StarlightGUI::implementation {
 		static BOOL DisableCmpCallback() noexcept;
 		static BOOL EnableLKD() noexcept;
 		static BOOL DisableLKD() noexcept;
+		static BOOL EnableEPTScan() noexcept;
+		static BOOL DisableEPTScan() noexcept;
 		static BOOL DisablePatchGuard(int type) noexcept;
 		static BOOL Shutdown();
 		static BOOL Reboot();
@@ -115,7 +125,6 @@ namespace winrt::StarlightGUI::implementation {
 	class KernelBase {
 	public:
 		static DWORD64 GetCIBaseAddress();
-		static ULONG64 HackCI();
 	};
 
 	class DriverUtils {

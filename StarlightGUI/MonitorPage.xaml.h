@@ -178,10 +178,18 @@ namespace winrt::StarlightGUI::implementation
         slg::coroutine HandleSegmentedChange(int index, bool force);
 
         void ObjectTreeView_SelectionChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::SelectionChangedEventArgs const& e);
-        void ObjectListView_Tapped(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::TappedRoutedEventArgs const& e);
+        void ObjectListView_RightTapped(IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::RightTappedRoutedEventArgs const& e);
+		void CallbackListView_RightTapped(IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::RightTappedRoutedEventArgs const& e);
+		void MiniFilterListView_RightTapped(IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::RightTappedRoutedEventArgs const& e);
+		void StdFilterListView_RightTapped(IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::RightTappedRoutedEventArgs const& e);
+		void SSDTListView_RightTapped(IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::RightTappedRoutedEventArgs const& e);
+		void ExCallbackListView_RightTapped(IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::RightTappedRoutedEventArgs const& e);
+		void PiDDBListView_RightTapped(IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::RightTappedRoutedEventArgs const& e);
+		void HALDPTListView_RightTapped(IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::RightTappedRoutedEventArgs const& e);
         void MonitorListView_ContainerContentChanging(
             winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
             winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args);
+
         slg::coroutine RefreshButton_Click(IInspectable const&, RoutedEventArgs const&);
         slg::coroutine DbgViewButton_Click(IInspectable const&, RoutedEventArgs const&);
         slg::coroutine DbgViewGlobalCheckBox_Click(IInspectable const&, RoutedEventArgs const&);
@@ -219,6 +227,9 @@ namespace winrt::StarlightGUI::implementation
 		inline static hstring dbgViewData = L"";
 		inline static std::mutex dbgViewMutex;
 		inline static DbgViewMonitor dbgViewMonitor{ &dbgViewData, &dbgViewMutex };
+
+		template <typename T>
+		T FindParent(winrt::Microsoft::UI::Xaml::DependencyObject const& child);
     };
 }
 

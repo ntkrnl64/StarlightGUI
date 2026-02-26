@@ -27,16 +27,4 @@ namespace winrt::StarlightGUI::implementation {
 
 		return 0;
 	}
-
-	ULONG64 KernelBase::HackCI() {
-		HMODULE hModule = LoadLibraryExW(L"C:\\Windows\\System32\\ci.dll", NULL, DONT_RESOLVE_DLL_REFERENCES);
-		if (!hModule) return 0;
-
-		// Offset for Windows 11 25H2
-		ULONG64 g_ciOptions = GetCIBaseAddress() + 0x4E004;
-
-		FreeLibrary(hModule);
-
-		return g_ciOptions;
-	}
 }
