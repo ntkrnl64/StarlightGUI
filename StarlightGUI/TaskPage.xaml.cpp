@@ -560,7 +560,6 @@ namespace winrt::StarlightGUI::implementation
 
         co_await wil::resume_foreground(DispatcherQueue());
 
-        winrt::StarlightGUI::ProcessInfo& selectedTarget = winrt::make<winrt::StarlightGUI::implementation::ProcessInfo>();
         for (const auto& process : processes) {
             bool shouldRemove = query.empty() ? false : ApplyFilter(process, query);
             if (shouldRemove) continue;
@@ -579,9 +578,6 @@ namespace winrt::StarlightGUI::implementation
             if (process.Status().empty()) process.Status(L"运行中");
             if (process.EProcess().empty()) process.EProcess(L"(未知)");
 
-            // 寻找选中目标
-            if (selectedItemId == process.Id()) selectedTarget = process;
-
             m_processList.Append(process);
         }
 
@@ -596,12 +592,6 @@ namespace winrt::StarlightGUI::implementation
         countText << L"共 " << m_processList.Size() << L" 个进程 (" << duration << " ms)";
         ProcessCountText().Text(countText.str());
         LoadingRing().IsActive(false);
-
-        // 恢复选中项
-        uint32_t selectedIndex;
-        if (m_processList.IndexOf(selectedTarget, selectedIndex)) {
-            ProcessListView().SelectedIndex(selectedIndex);
-        }
 
         LOG_INFO(__WFUNCTION__, L"Loaded process list, %d entry(s) in total.", m_processList.Size());
         m_isLoadingProcesses = false;

@@ -12,39 +12,7 @@ using json = nlohmann::json;
 namespace fs = std::filesystem;
 
 namespace winrt::StarlightGUI::implementation {
-    template<typename T>
-    auto ReadConfig(std::string key, T defaultValue) {
-        static char* value = NULL;
-        size_t len = 0;
-        try
-        {
-            // 获取用户文件夹路径
-            if (value == NULL) _dupenv_s(&value, &len, "USERPROFILE");
-
-            auto userFolder = fs::path(value);
-            auto configFilePath = userFolder / "StarlightGUI.json";
-
-            if (fs::exists(configFilePath))
-            {
-                std::ifstream configFile(configFilePath);
-                json configData;
-                configFile >> configData;
-
-                if (configData.contains(key))
-                {
-                    return configData[key];
-                }
-            }
-        }
-        catch (...)
-        {
-            SaveConfig(key, defaultValue);
-            return ReadConfig(key, defaultValue);
-        }
-        
-        SaveConfig(key, defaultValue);
-        return ReadConfig(key, defaultValue);
-    }
+    void InitializeConfig();
 
     template<typename T>
     void SaveConfig(std::string key, T s_value) {
@@ -76,5 +44,37 @@ namespace winrt::StarlightGUI::implementation {
         InitializeConfig();
     }
 
-    void InitializeConfig();
+    template<typename T>
+    auto ReadConfig(std::string key, T defaultValue) {
+        static char* value = NULL;
+        size_t len = 0;
+        try
+        {
+            // 获取用户文件夹路径
+            if (value == NULL) _dupenv_s(&value, &len, "USERPROFILE");
+
+            auto userFolder = fs::path(value);
+            auto configFilePath = userFolder / "StarlightGUI.json";
+
+            if (fs::exists(configFilePath))
+            {
+                std::ifstream configFile(configFilePath);
+                json configData;
+                configFile >> configData;
+
+                if (configData.contains(key))
+                {
+                    return configData[key];
+                }
+            }
+        }
+        catch (...)
+        {
+            SaveConfig(key, defaultValue);
+            return ReadConfig(key, defaultValue);
+        }
+
+        SaveConfig(key, defaultValue);
+        return ReadConfig(key, defaultValue);
+    }
 }

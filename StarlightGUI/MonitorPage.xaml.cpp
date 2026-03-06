@@ -51,22 +51,7 @@ namespace winrt::StarlightGUI::implementation
 			HALPDPTListView().ItemContainerTransitions().Clear();
 		}
 
-		Loaded([this](auto&&, auto&&) {
-			if (!KernelInstance::IsRunningAsAdmin()) {
-				CallbackSegmentedItem().IsEnabled(false);
-				MiniFilterSegmentedItem().IsEnabled(false);
-				StdFilterSegmentedItem().IsEnabled(false);
-				SSDTSegmentedItem().IsEnabled(false);
-				SSSDTSegmentedItem().IsEnabled(false);
-				IoTimerSegmentedItem().IsEnabled(false);
-				ExCallbackSegmentedItem().IsEnabled(false);
-				IDTSegmentedItem().IsEnabled(false);
-				GDTSegmentedItem().IsEnabled(false);
-				PiDDBSegmentedItem().IsEnabled(false);
-				HALDPTSegmentedItem().IsEnabled(false);
-				HALPDPTSegmentedItem().IsEnabled(false);
-			}
-			});
+		winrt::Microsoft::UI::Xaml::Application::Current().Resources().MergedDictionaries();
 
 		Unloaded([this](auto&&, auto&&) {
 			windbgTimer.Stop();

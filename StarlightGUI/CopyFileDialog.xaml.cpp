@@ -44,7 +44,7 @@ namespace winrt::StarlightGUI::implementation
 
         picker.SuggestedStartLocation(PickerLocationId::ComputerFolder);
 
-        auto& result = co_await picker.PickSingleFolderAsync();
+        auto result = co_await picker.PickSingleFolderAsync();
 
         if (!result) co_return;
 

@@ -192,12 +192,70 @@ namespace winrt::StarlightGUI::implementation
             });
         item2_1.Items().Append(item2_1_sub4);
 
+        // 选项2.1
+        MenuFlyoutSubItem item2_2;
+        item2_2.Style(styleSub);
+        item2_2.Icon(CreateFontIcon(L"\ue912"));
+        item2_2.Text(L"设置窗口ZBID");
+        MenuFlyoutItem item2_1_sub1;
+        item2_1_sub1.Style(style);
+        item2_1_sub1.Icon(CreateFontIcon(L"\ueb1d"));
+        item2_1_sub1.Text(L"显示");
+        item2_1_sub1.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
+            if (ShowWindow((HWND)item.Hwnd(), SW_SHOW) || GetLastError() == 0) {
+                CreateInfoBarAndDisplay(L"成功", L"成功显示窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
+                WaitAndReloadAsync(1000);
+            }
+            else CreateInfoBarAndDisplay(L"失败", L"无法显示窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_mainWindowInstance);
+            co_return;
+            });
+        item2_1.Items().Append(item2_1_sub1);
+        MenuFlyoutItem item2_1_sub2;
+        item2_1_sub2.Style(style);
+        item2_1_sub2.Icon(CreateFontIcon(L"\ueb19"));
+        item2_1_sub2.Text(L"隐藏");
+        item2_1_sub2.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
+            if (ShowWindow((HWND)item.Hwnd(), SW_HIDE) || GetLastError() == 0) {
+                CreateInfoBarAndDisplay(L"成功", L"成功隐藏窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
+                WaitAndReloadAsync(1000);
+            }
+            else CreateInfoBarAndDisplay(L"失败", L"无法隐藏窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_mainWindowInstance);
+            co_return;
+            });
+        item2_1.Items().Append(item2_1_sub2);
+        MenuFlyoutItem item2_1_sub3;
+        item2_1_sub3.Style(style);
+        item2_1_sub3.Icon(CreateFontIcon(L"\ue740"));
+        item2_1_sub3.Text(L"最大化");
+        item2_1_sub3.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
+            if (PostMessageW((HWND)item.Hwnd(), WM_SYSCOMMAND, SC_MAXIMIZE, 0) == ERROR_SUCCESS) {
+                CreateInfoBarAndDisplay(L"成功", L"成功最大化窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
+                WaitAndReloadAsync(1000);
+            }
+            else CreateInfoBarAndDisplay(L"失败", L"无法最大化窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_mainWindowInstance);
+            co_return;
+            });
+        item2_1.Items().Append(item2_1_sub3);
+        MenuFlyoutItem item2_1_sub4;
+        item2_1_sub4.Style(style);
+        item2_1_sub4.Icon(CreateFontIcon(L"\ue73f"));
+        item2_1_sub4.Text(L"最小化");
+        item2_1_sub4.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
+            if (PostMessageW((HWND)item.Hwnd(), WM_SYSCOMMAND, SC_MINIMIZE, 0) == ERROR_SUCCESS) {
+                CreateInfoBarAndDisplay(L"成功", L"成功最小化窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
+                WaitAndReloadAsync(1000);
+            }
+            else CreateInfoBarAndDisplay(L"失败", L"无法最小化窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_mainWindowInstance);
+            co_return;
+            });
+        item2_1.Items().Append(item2_1_sub4);
+
         // 选项2.2
-        MenuFlyoutItem item2_2;
-        item2_2.Style(style);
-        item2_2.Icon(CreateFontIcon(L"\ue754"));
-        item2_2.Text(L"在任务栏闪烁");
-        item2_2.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
+        MenuFlyoutItem item2_3;
+        item2_3.Style(style);
+        item2_3.Icon(CreateFontIcon(L"\ue754"));
+        item2_3.Text(L"在任务栏闪烁");
+        item2_3.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
             if (FlashWindow((HWND)item.Hwnd(), FALSE) || GetLastError() == 0) {
                 CreateInfoBarAndDisplay(L"成功", L"成功在任务栏闪烁窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
                 WaitAndReloadAsync(1000);
@@ -207,11 +265,11 @@ namespace winrt::StarlightGUI::implementation
             });
 
         // 选项2.3
-        MenuFlyoutItem item2_3;
-        item2_3.Style(style);
-        item2_3.Icon(CreateFontIcon(L"\ue75c"));
-        item2_3.Text(L"重绘窗口");
-        item2_3.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
+        MenuFlyoutItem item2_4;
+        item2_4.Style(style);
+        item2_4.Icon(CreateFontIcon(L"\ue75c"));
+        item2_4.Text(L"重绘窗口");
+        item2_4.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
             if (UpdateWindow((HWND)item.Hwnd()) || GetLastError() == 0) {
                 CreateInfoBarAndDisplay(L"成功", L"成功重绘窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
                 WaitAndReloadAsync(1000);
@@ -404,8 +462,8 @@ namespace winrt::StarlightGUI::implementation
         menuFlyout.Items().Append(item1_3);
 		menuFlyout.Items().Append(separator1);
         menuFlyout.Items().Append(item2_1);
-        menuFlyout.Items().Append(item2_2);
         menuFlyout.Items().Append(item2_3);
+        menuFlyout.Items().Append(item2_4);
         menuFlyout.Items().Append(separator2);
         menuFlyout.Items().Append(item3_1);
         menuFlyout.Items().Append(item3_2);
@@ -604,33 +662,41 @@ namespace winrt::StarlightGUI::implementation
         co_return;
     }
 
-    // 暂时实现不了，不管他
     bool WindowPage::SetWindowZBID(HWND hwnd, ZBID zbid) {
-        HMODULE hDll = LoadLibraryW(axBandPath.c_str());
-        if (hDll)
+        HMODULE hModule = GetModuleHandleW(L"WindowTopMost.dll");
+
+        if (!hModule)
         {
-			LOG_INFO(L"AxBand", L"Loaded AxBand.dll successfully.");
-            typedef BOOL(*PFN_SetWindowBandEx)(HWND, HWND, DWORD);
+            LOG_ERROR(__WFUNCTION__, L"WindowTopMost module not found! Is it loaded?");
+            return false;
+		}
 
-            PFN_SetWindowBandEx pSetWindowBandEx =
-                (PFN_SetWindowBandEx)GetProcAddress(hDll, "SetWindowBandEx");
+        typedef BOOL(*WTMInit_t)(void);
+        typedef BOOL(*WTMUninit_t)(void);
+        typedef BOOL(*WTMSetWindowBand_t)(HWND hWnd, HWND hWndInsertAfter, DWORD dwBand);
 
-            if (pSetWindowBandEx)
-            {
-                LOG_INFO(L"AxBand", L"Loaded SetWindowBandEx function successfully.");
+        WTMInit_t WTMInit = (WTMInit_t)GetProcAddress(hModule, "WTMInit");
+        WTMUninit_t WTMUninit = (WTMUninit_t)GetProcAddress(hModule, "WTMUninit");
+        WTMSetWindowBand_t WTMSetWindowBand = (WTMSetWindowBand_t)GetProcAddress(hModule, "WTMSetWindowBand");
 
-                BOOL result = pSetWindowBandEx(hwnd, NULL, zbid);
-
-                LOG_INFO(L"AxBand", L"Set window band to %d successfully.", zbid);
-                FreeLibrary(hDll);
-
-                return result;
-            }
-
-            FreeLibrary(hDll);
+        if (!WTMInit || !WTMUninit || !WTMSetWindowBand)
+        {
+            LOG_ERROR(__WFUNCTION__, L"WindowTopMost failed to load! Is the module broken?");
+            return false;
         }
 
-        return false;
+        if (!WTMInit())
+        {
+            LOG_ERROR(__WFUNCTION__, L"WindowTopMost failed to initialize.");
+            return false;
+        }
+
+        LOG_INFO(__WFUNCTION__, L"Setting window band to %d.", zbid);
+		BOOL result = WTMSetWindowBand(hwnd, HWND_TOPMOST, zbid);
+
+		WTMUninit();
+
+        return result;
     }
 
     void WindowPage::ColumnHeader_Click(IInspectable const& sender, RoutedEventArgs const& e)
@@ -655,7 +721,7 @@ namespace winrt::StarlightGUI::implementation
 
         std::vector<winrt::StarlightGUI::WindowInfo> sortedWindows;
 
-        for (auto& window : m_windowList) {
+        for (auto const& window : m_windowList) {
             sortedWindows.push_back(window);
         }
 

@@ -25,8 +25,8 @@ namespace winrt::StarlightGUI::implementation
             winrt::single_threaded_observable_vector<winrt::StarlightGUI::ThreadInfo>()
         };
 
-        inline static bool Process_ThreadPage::m_isIdAscending = true;
-        inline static bool Process_ThreadPage::m_isPriorityAscending = true;
+        inline static bool m_isIdAscending = true;
+        inline static bool m_isPriorityAscending = true;
         inline static bool currentSortingOption;
         inline static std::string currentSortingType;
 

@@ -282,7 +282,7 @@ namespace winrt::StarlightGUI::implementation
 
         std::vector<winrt::StarlightGUI::KernelModuleInfo> sortedKernelModules;
 
-        for (auto& kernelModule : m_kernelModuleList) {
+        for (auto const& kernelModule : m_kernelModuleList) {
             sortedKernelModules.push_back(kernelModule);
         }
 

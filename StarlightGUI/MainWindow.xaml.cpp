@@ -223,7 +223,7 @@ namespace winrt::StarlightGUI::implementation
                 if (file && file.IsAvailable() && (file.FileType() == L".png" || file.FileType() == L".jpg" || file.FileType() == L".bmp" || file.FileType() == L".jpeg")) {
                     ImageBrush brush;
                     BitmapImage bitmapImage;
-                    auto& stream = co_await file.OpenReadAsync();
+                    auto stream = co_await file.OpenReadAsync();
                     bitmapImage.SetSource(stream);
                     brush.ImageSource(bitmapImage);
 
@@ -290,7 +290,7 @@ namespace winrt::StarlightGUI::implementation
                 client.DefaultRequestHeaders().Append(L"If-None-Match", L"");
 
                 LOG_INFO(L"Updater", L"Sending update check request...");
-                auto& result = co_await client.GetStringAsync(uri);
+                auto result = co_await client.GetStringAsync(uri);
 
                 auto json = Windows::Data::Json::JsonObject::Parse(result);
                 latestBuildNumber = json.GetNamedNumber(L"build_number");
@@ -356,36 +356,57 @@ namespace winrt::StarlightGUI::implementation
     }
 
     IAsyncAction MainWindow::LoadModules() {
-        if (kernelPath.empty() || astralPath.empty() || axBandPath.empty()) {
+        if (kernelPath.empty() || astralPath.empty() || wtmPath.empty() || iamKeyHackerPath.empty()) {
             try {
                 co_await winrt::resume_background();
 
                 LOG_INFO(L"Driver", L"Loading necessary modules...");
 
-                auto& kernelFile = co_await StorageFile::GetFileFromPathAsync(GetInstalledLocationPath() + L"\\Assets\\kernel.sys");
-                auto& astralFile = co_await StorageFile::GetFileFromPathAsync(GetInstalledLocationPath() + L"\\Assets\\AstralX.sys");
-                auto& axBandFile = co_await StorageFile::GetFileFromPathAsync(GetInstalledLocationPath() + L"\\Assets\\AxBand.dll");
+                auto kernelFile = co_await StorageFile::GetFileFromPathAsync(GetInstalledLocationPath() + L"\\Assets\\kernel.sys");
+                auto astralFile = co_await StorageFile::GetFileFromPathAsync(GetInstalledLocationPath() + L"\\Assets\\AstralX.sys");
+                auto wtmFile = co_await StorageFile::GetFileFromPathAsync(GetInstalledLocationPath() + L"\\Assets\\WindowTopMost.dll");
+                auto iamKeyHackerFile = co_await StorageFile::GetFileFromPathAsync(GetInstalledLocationPath() + L"\\Assets\\IAMKeyHacker.dll");
 
                 if (kernelFile && KernelInstance::IsRunningAsAdmin()) {
                     kernelPath = kernelFile.Path();
 
-                    LOG_INFO(L"Driver", L"Kernel.sys path [%s], load it.", kernelPath.c_str());
+                    LOG_INFO(L"Driver", L"kernel.sys path [%s], loading...", kernelPath.c_str());
                     DriverUtils::LoadKernelDriver(kernelPath.c_str(), unused);
-                    LOG_INFO(L"Driver", L"Kernel.sys load result: %s, GetLastError() = %d", unused.c_str(), GetLastError());
+                    LOG_INFO(L"Driver", L"kernel.sys initialization result: %s, GetLastError() = %d", unused.c_str(), GetLastError());
                 }
 
                 if (astralFile && KernelInstance::IsRunningAsAdmin()) {
                     astralPath = astralFile.Path();
 
-                    LOG_INFO(L"Driver", L"AstralX.sys path [%s], load it.", astralPath.c_str());
+                    LOG_INFO(L"Driver", L"AstralX.sys path [%s], loading...", astralPath.c_str());
                     DriverUtils::LoadDriver(astralPath.c_str(), L"AstralX", unused);
-                    LOG_INFO(L"Driver", L"AstralX.sys load result: %s, GetLastError() = %d", unused.c_str(), GetLastError());
+                    LOG_INFO(L"Driver", L"AstralX.sys initialization result: %s, GetLastError() = %d", unused.c_str(), GetLastError());
                 }
 
-                if (axBandFile) {
-                    axBandPath = axBandFile.Path();
+                if (wtmFile) {
+                    wtmPath = wtmFile.Path();
 
-                    LOG_INFO(L"Driver", L"AxBand.dll path [%s].", axBandPath.c_str());
+                    LOG_INFO(L"Driver", L"WindowTopMost.dll path [%s], loading...", wtmPath.c_str());
+					HMODULE hModule = LoadLibraryW(wtmPath.c_str());
+                    if (hModule) {
+                        LOG_INFO(L"Driver", L"WindowTopMost.dll initialized successfully.");
+                    }
+                    else {
+                        LOG_ERROR(L"Driver", L"Failed to initialize WindowTopMost.dll, GetLastError() = %d", GetLastError());
+                    }
+                }
+
+                if (iamKeyHackerFile) {
+                    iamKeyHackerPath = iamKeyHackerFile.Path();
+
+                    LOG_INFO(L"Driver", L"IAMKeyHacker.dll path [%s], loading...", iamKeyHackerPath.c_str());
+					HMODULE hModule = LoadLibraryW(iamKeyHackerPath.c_str());
+                    if (hModule) {
+                        LOG_INFO(L"Driver", L"IAMKeyHacker.dll initialized successfully.");
+                    }
+                    else {
+                        LOG_ERROR(L"Driver", L"Failed to initialize IAMKeyHacker.dll, GetLastError() = %d", GetLastError());
+					}
                 }
 
                 LOG_INFO(L"Driver", L"Loaded successfully.", kernelPath.c_str());

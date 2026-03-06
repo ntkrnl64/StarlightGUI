@@ -166,7 +166,7 @@ namespace winrt::StarlightGUI::implementation
                 if (file && file.IsAvailable() && (file.FileType() == L".png" || file.FileType() == L".jpg" || file.FileType() == L".bmp" || file.FileType() == L".jpeg")) {
                     ImageBrush brush;
                     BitmapImage bitmapImage;
-                    auto& stream = co_await file.OpenReadAsync();
+                    auto stream = co_await file.OpenReadAsync();
                     bitmapImage.SetSource(stream);
                     brush.ImageSource(bitmapImage);
 

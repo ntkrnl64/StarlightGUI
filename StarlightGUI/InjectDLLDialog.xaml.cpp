@@ -47,11 +47,11 @@ namespace winrt::StarlightGUI::implementation
         picker.SuggestedStartLocation(PickerLocationId::ComputerFolder);
         picker.FileTypeFilter().Append(L".dll");
 
-        auto& result = co_await picker.PickSingleFileAsync();
+        auto result = co_await picker.PickSingleFileAsync();
 
         if (!result) co_return;
 
-        auto& file = co_await StorageFile::GetFileFromPathAsync(result.Path());
+        auto file = co_await StorageFile::GetFileFromPathAsync(result.Path());
 
         if (file != nullptr && file.IsAvailable()) {
             if (file.FileType() == L".dll") {

@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <pch.h>
+#include <coroutine>
 #include <exception>
 
 namespace slg {
@@ -13,9 +14,9 @@ namespace slg {
 
             void return_void() const noexcept {}
 
-            std::experimental::suspend_never initial_suspend() const noexcept { return {}; }
+            std::suspend_never initial_suspend() const noexcept { return {}; }
 
-            std::experimental::suspend_never final_suspend() const noexcept { return {}; }
+            std::suspend_never final_suspend() const noexcept { return {}; }
 
             void unhandled_exception() const noexcept
             {

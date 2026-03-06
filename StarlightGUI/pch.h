@@ -80,7 +80,7 @@
 #include <Utils/CppUtils.h>
 #include <SLG.h>
 
-extern winrt::hstring kernelPath, astralPath, axBandPath;
+extern winrt::hstring kernelPath, astralPath, wtmPath, iamKeyHackerPath;
 extern std::wstring unused;
 extern std::string enum_file_mode, background_type, mica_type, acrylic_type, navigation_style, background_image, image_stretch;
 extern bool enum_strengthen, pdh_first, list_animation, dangerous_confirm, check_update;

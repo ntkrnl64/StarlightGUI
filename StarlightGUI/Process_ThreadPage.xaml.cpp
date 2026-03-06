@@ -303,7 +303,7 @@ namespace winrt::StarlightGUI::implementation
     {
         std::vector<winrt::StarlightGUI::ThreadInfo> sortedThreads;
 
-        for (auto& process : m_threadList) {
+        for (auto const& process : m_threadList) {
             sortedThreads.push_back(process);
         }
 

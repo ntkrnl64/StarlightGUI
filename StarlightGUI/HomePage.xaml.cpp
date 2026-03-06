@@ -112,18 +112,18 @@ namespace winrt::StarlightGUI::implementation
 
                 LOG_INFO(__WFUNCTION__, L"Retrieving user profile...");
 
-                auto& users = co_await User::FindAllAsync(UserType::LocalUser, UserAuthenticationStatus::LocallyAuthenticated);
+                auto users = co_await User::FindAllAsync(UserType::LocalUser, UserAuthenticationStatus::LocallyAuthenticated);
 
                 if (users && users.Size() > 0)
                 {
                     LOG_INFO(__WFUNCTION__, L"Retrieved user list.");
                     auto user = users.GetAt(0);
-                    auto& picture = co_await user.GetPictureAsync(UserPictureSize::Size64x64);
+                    auto picture = co_await user.GetPictureAsync(UserPictureSize::Size64x64);
 
                     if (picture)
                     {
                         LOG_INFO(__WFUNCTION__, L"Retrieved user picture.");
-                        auto& stream = co_await picture.OpenReadAsync();
+                        auto stream = co_await picture.OpenReadAsync();
 
                         if (stream)
                         {
@@ -139,7 +139,7 @@ namespace winrt::StarlightGUI::implementation
 
                     co_await winrt::resume_background();
 
-                    auto& displayName = co_await user.GetPropertyAsync(KnownUserProperties::DisplayName());
+                    auto displayName = co_await user.GetPropertyAsync(KnownUserProperties::DisplayName());
 
                     if (displayName && !displayName.as<winrt::hstring>().empty())
                     {
@@ -180,7 +180,7 @@ namespace winrt::StarlightGUI::implementation
                 * 因为太唐了受不了了 为什么说的话都那么逆天
                 */
                 Uri uri(L"https://v1.hitokoto.cn/?c=d&c=e&c=i&c=j&c=k");
-                auto& result = co_await client.GetStringAsync(uri);
+                auto result = co_await client.GetStringAsync(uri);
 
                 // 读取 json 内容
                 auto json = Windows::Data::Json::JsonObject::Parse(result);

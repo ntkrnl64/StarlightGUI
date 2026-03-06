@@ -252,12 +252,12 @@ namespace winrt::StarlightGUI::implementation
         picker.FileTypeFilter().Append(L".bmp");
         picker.FileTypeFilter().Append(L".jpeg");
 
-        auto& result = co_await picker.PickSingleFileAsync();
+        auto result = co_await picker.PickSingleFileAsync();
 
         if (!result) co_return;
 
         try {
-            auto& file = co_await StorageFile::GetFileFromPathAsync(result.Path());
+            auto file = co_await StorageFile::GetFileFromPathAsync(result.Path());
 
             if (file && file.IsAvailable() && (file.FileType() == L".png" || file.FileType() == L".jpg" || file.FileType() == L".bmp" || file.FileType() == L".jpeg")) {
                 std::string path = WideStringToString(file.Path().c_str());

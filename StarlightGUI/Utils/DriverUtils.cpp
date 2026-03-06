@@ -98,6 +98,7 @@ namespace winrt::StarlightGUI::implementation {
 				}
 			}
 
+			dbgMsg = L"成功";
 			CloseServiceHandle(hService);
 			CloseServiceHandle(hSCM);
 			return true;
@@ -124,6 +125,7 @@ namespace winrt::StarlightGUI::implementation {
 				return false;
 			}
 
+			dbgMsg = L"成功";
 			CloseServiceHandle(hService);
 			CloseServiceHandle(hSCM);
 			return true;
