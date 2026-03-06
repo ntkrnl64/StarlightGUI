@@ -100,13 +100,13 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutItem item1_1;
         item1_1.Style(style);
         item1_1.Icon(CreateFontIcon(L"\ue711"));
-        item1_1.Text(L"结束进程");
+        item1_1.Text(L"终止");
         item1_1.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
             if (TaskUtils::_TerminateProcess(item.Id())) {
-                CreateInfoBarAndDisplay(L"成功", L"成功结束进程: " + item.Name() + L" (" + to_hstring(item.Id()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
+                CreateInfoBarAndDisplay(L"成功", L"成功终止进程: " + item.Name() + L" (" + to_hstring(item.Id()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
                 WaitAndReloadAsync(1000);
             }
-            else CreateInfoBarAndDisplay(L"失败", L"无法结束进程: " + item.Name() + L" (" + to_hstring(item.Id()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_mainWindowInstance);
+            else CreateInfoBarAndDisplay(L"失败", L"无法终止进程: " + item.Name() + L" (" + to_hstring(item.Id()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_mainWindowInstance);
             co_return;
             });
 
@@ -114,13 +114,13 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutItem item1_2;
         item1_2.Style(style);
         item1_2.Icon(CreateFontIcon(L"\ue8f0"));
-        item1_2.Text(L"结束进程 (内核)");
+        item1_2.Text(L"终止 (内核)");
         item1_2.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
             if (KernelInstance::_ZwTerminateProcess(item.Id())) {
-                CreateInfoBarAndDisplay(L"成功", L"成功结束进程: " + item.Name() + L" (" + to_hstring(item.Id()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
+                CreateInfoBarAndDisplay(L"成功", L"成功终止进程: " + item.Name() + L" (" + to_hstring(item.Id()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
                 WaitAndReloadAsync(1000);
             }
-            else CreateInfoBarAndDisplay(L"失败", L"无法结束进程: " + item.Name() + L" (" + to_hstring(item.Id()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_mainWindowInstance);
+            else CreateInfoBarAndDisplay(L"失败", L"无法终止束进程: " + item.Name() + L" (" + to_hstring(item.Id()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_mainWindowInstance);
             co_return;
             });
         if (!KernelInstance::IsRunningAsAdmin()) {
@@ -131,14 +131,14 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutItem item1_3;
         item1_3.Style(style);
         item1_3.Icon(CreateFontIcon(L"\ue945"));
-        item1_3.Text(L"结束进程 (内存抹杀)");
+        item1_3.Text(L"终止 (内存抹杀)");
         item1_3.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
             if (safeAcceptedPID == item.Id() || !dangerous_confirm) {
                 if (KernelInstance::MurderProcess(item.Id())) {
-                    CreateInfoBarAndDisplay(L"成功", L"成功结束进程: " + item.Name() + L" (" + to_hstring(item.Id()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
+                    CreateInfoBarAndDisplay(L"成功", L"成功终止进程: " + item.Name() + L" (" + to_hstring(item.Id()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
                     WaitAndReloadAsync(1000);
                 }
-                else CreateInfoBarAndDisplay(L"失败", L"无法结束进程: " + item.Name() + L" (" + to_hstring(item.Id()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_mainWindowInstance);
+                else CreateInfoBarAndDisplay(L"失败", L"无法终止进程: " + item.Name() + L" (" + to_hstring(item.Id()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_mainWindowInstance);
             }
             else {
                 safeAcceptedPID = item.Id();
@@ -155,7 +155,7 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutSubItem item2_1;
         item2_1.Style(styleSub);
         item2_1.Icon(CreateFontIcon(L"\ue912"));
-        item2_1.Text(L"设置进程状态");
+        item2_1.Text(L"设置状态");
         MenuFlyoutItem item2_1_sub1;
         item2_1_sub1.Style(style);
         item2_1_sub1.Icon(CreateFontIcon(L"\ue769"));
@@ -188,7 +188,7 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutItem item2_2;
         item2_2.Style(style);
         item2_2.Icon(CreateFontIcon(L"\ued1a"));
-        item2_2.Text(L"隐藏进程");
+        item2_2.Text(L"隐藏");
         item2_2.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
             if (KernelInstance::HideProcess(item.Id())) {
                 CreateInfoBarAndDisplay(L"成功", L"成功隐藏进程: " + item.Name() + L" (" + to_hstring(item.Id()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
@@ -203,7 +203,7 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutSubItem item2_3;
         item2_3.Style(styleSub);
         item2_3.Icon(CreateFontIcon(L"\uea18"));
-        item2_3.Text(L"设置PPL等级");
+        item2_3.Text(L"设置 PPL");
         
         // PPL等级
         MenuFlyoutItem item2_3_sub1;

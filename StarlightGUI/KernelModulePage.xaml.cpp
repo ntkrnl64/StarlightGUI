@@ -91,7 +91,7 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutItem item1_1;
         item1_1.Style(style);
         item1_1.Icon(CreateFontIcon(L"\uec91"));
-        item1_1.Text(L"卸载模块");
+        item1_1.Text(L"卸载");
         item1_1.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
             if (KernelInstance::UnloadDriver(item.DriverObjectULong())) {
                 CreateInfoBarAndDisplay(L"成功", L"成功卸载模块: " + item.Name(), InfoBarSeverity::Success, g_mainWindowInstance);
@@ -105,7 +105,7 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutItem item1_2;
         item1_2.Style(style);
         item1_2.Icon(CreateFontIcon(L"\ued1a"));
-        item1_2.Text(L"隐藏模块");
+        item1_2.Text(L"隐藏");
         item1_2.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
             if (KernelInstance::HideDriver(item.DriverObjectULong())) {
                 CreateInfoBarAndDisplay(L"成功", L"成功隐藏模块: " + item.Name(), InfoBarSeverity::Success, g_mainWindowInstance);

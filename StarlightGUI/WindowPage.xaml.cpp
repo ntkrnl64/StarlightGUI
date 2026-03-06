@@ -93,7 +93,7 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutItem item1_1;
         item1_1.Style(style);
         item1_1.Icon(CreateFontIcon(L"\ue711"));
-        item1_1.Text(L"关闭窗口");
+        item1_1.Text(L"关闭");
         item1_1.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
             if (PostMessageW((HWND)item.Hwnd(), WM_DESTROY, 0, 0)) {
                 CreateInfoBarAndDisplay(L"成功", L"成功关闭窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
@@ -106,7 +106,7 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutItem item1_2;
         item1_2.Style(style);
         item1_2.Icon(CreateFontIcon(L"\ue8f0"));
-        item1_2.Text(L"关闭窗口 (结束任务)");
+        item1_2.Text(L"关闭 (结束任务)");
         item1_2.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
             if (TaskUtils::EndTaskByWindow((HWND)item.Hwnd())) {
                 CreateInfoBarAndDisplay(L"成功", L"成功关闭窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
@@ -119,7 +119,7 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutItem item1_3;
         item1_3.Style(style);
         item1_3.Icon(CreateFontIcon(L"\ue945"));
-        item1_3.Text(L"关闭窗口 (内核)");
+        item1_3.Text(L"关闭 (内核)");
         item1_3.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
             DWORD pid;
 			GetWindowThreadProcessId((HWND)item.Hwnd(), &pid);
@@ -138,65 +138,7 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutSubItem item2_1;
         item2_1.Style(styleSub);
         item2_1.Icon(CreateFontIcon(L"\ue912"));
-        item2_1.Text(L"设置窗口状态");
-        MenuFlyoutItem item2_1_sub1;
-        item2_1_sub1.Style(style);
-        item2_1_sub1.Icon(CreateFontIcon(L"\ueb1d"));
-        item2_1_sub1.Text(L"显示");
-        item2_1_sub1.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
-            if (ShowWindow((HWND)item.Hwnd(), SW_SHOW) || GetLastError() == 0) {
-                CreateInfoBarAndDisplay(L"成功", L"成功显示窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
-                WaitAndReloadAsync(1000);
-            }
-            else CreateInfoBarAndDisplay(L"失败", L"无法显示窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_mainWindowInstance);
-            co_return;
-            });
-        item2_1.Items().Append(item2_1_sub1);
-        MenuFlyoutItem item2_1_sub2;
-        item2_1_sub2.Style(style);
-        item2_1_sub2.Icon(CreateFontIcon(L"\ueb19"));
-        item2_1_sub2.Text(L"隐藏");
-        item2_1_sub2.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
-            if (ShowWindow((HWND)item.Hwnd(), SW_HIDE) || GetLastError() == 0) {
-                CreateInfoBarAndDisplay(L"成功", L"成功隐藏窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
-                WaitAndReloadAsync(1000);
-            }
-            else CreateInfoBarAndDisplay(L"失败", L"无法隐藏窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_mainWindowInstance);
-            co_return;
-            });
-        item2_1.Items().Append(item2_1_sub2);
-        MenuFlyoutItem item2_1_sub3;
-        item2_1_sub3.Style(style);
-        item2_1_sub3.Icon(CreateFontIcon(L"\ue740"));
-        item2_1_sub3.Text(L"最大化");
-        item2_1_sub3.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
-            if (PostMessageW((HWND)item.Hwnd(), WM_SYSCOMMAND, SC_MAXIMIZE, 0) == ERROR_SUCCESS) {
-                CreateInfoBarAndDisplay(L"成功", L"成功最大化窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
-                WaitAndReloadAsync(1000);
-            }
-            else CreateInfoBarAndDisplay(L"失败", L"无法最大化窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_mainWindowInstance);
-            co_return;
-            });
-        item2_1.Items().Append(item2_1_sub3);
-        MenuFlyoutItem item2_1_sub4;
-        item2_1_sub4.Style(style);
-        item2_1_sub4.Icon(CreateFontIcon(L"\ue73f"));
-        item2_1_sub4.Text(L"最小化");
-        item2_1_sub4.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
-            if (PostMessageW((HWND)item.Hwnd(), WM_SYSCOMMAND, SC_MINIMIZE, 0) == ERROR_SUCCESS) {
-                CreateInfoBarAndDisplay(L"成功", L"成功最小化窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
-                WaitAndReloadAsync(1000);
-            }
-            else CreateInfoBarAndDisplay(L"失败", L"无法最小化窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_mainWindowInstance);
-            co_return;
-            });
-        item2_1.Items().Append(item2_1_sub4);
-
-        // 选项2.1
-        MenuFlyoutSubItem item2_2;
-        item2_2.Style(styleSub);
-        item2_2.Icon(CreateFontIcon(L"\ue912"));
-        item2_2.Text(L"设置窗口ZBID");
+        item2_1.Text(L"设置状态");
         MenuFlyoutItem item2_1_sub1;
         item2_1_sub1.Style(style);
         item2_1_sub1.Icon(CreateFontIcon(L"\ueb1d"));
@@ -251,6 +193,24 @@ namespace winrt::StarlightGUI::implementation
         item2_1.Items().Append(item2_1_sub4);
 
         // 选项2.2
+        MenuFlyoutSubItem item2_2;
+        item2_2.Style(styleSub);
+        item2_2.Icon(CreateFontIcon(L"\uf7ed"));
+        item2_2.Text(L"设置 ZBID");
+        MenuFlyoutItem item2_2_sub1;
+        item2_2_sub1.Style(style);
+        item2_2_sub1.Text(L"Default");
+        item2_2_sub1.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
+            if (SetWindowZBID((HWND)item.Hwnd(), ZBID_DEFAULT)) {
+                CreateInfoBarAndDisplay(L"成功", L"成功设置窗口 ZBID 为 Default", InfoBarSeverity::Success, g_mainWindowInstance);
+                WaitAndReloadAsync(1000);
+            }
+            else CreateInfoBarAndDisplay(L"失败", L"无法设置窗口 ZBID 为 Default, 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_mainWindowInstance);
+            co_return;
+            });
+        item2_2.Items().Append(item2_2_sub1);
+
+        // 选项2.3
         MenuFlyoutItem item2_3;
         item2_3.Style(style);
         item2_3.Icon(CreateFontIcon(L"\ue754"));
@@ -264,11 +224,11 @@ namespace winrt::StarlightGUI::implementation
             co_return;
             });
 
-        // 选项2.3
+        // 选项2.4
         MenuFlyoutItem item2_4;
         item2_4.Style(style);
         item2_4.Icon(CreateFontIcon(L"\ue75c"));
-        item2_4.Text(L"重绘窗口");
+        item2_4.Text(L"重绘");
         item2_4.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
             if (UpdateWindow((HWND)item.Hwnd()) || GetLastError() == 0) {
                 CreateInfoBarAndDisplay(L"成功", L"成功重绘窗口: " + item.Name() + L" (" + to_hstring(item.Hwnd()) + L")", InfoBarSeverity::Success, g_mainWindowInstance);
@@ -285,7 +245,7 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutSubItem item3_1;
         item3_1.Style(styleSub);
         item3_1.Icon(CreateFontIcon(L"\uef1f"));
-        item3_1.Text(L"设置窗口样式");
+        item3_1.Text(L"设置样式");
         MenuFlyoutItem item3_1_sub1;
         item3_1_sub1.Style(style);
         item3_1_sub1.Text(L"纯色");
@@ -356,7 +316,7 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutSubItem item3_2;
         item3_2.Style(styleSub);
         item3_2.Icon(CreateFontIcon(L"\ue781"));
-        item3_2.Text(L"设置窗口主题");
+        item3_2.Text(L"设置主题");
         MenuFlyoutItem item3_2_sub1;
         item3_2_sub1.Style(style);
         item3_2_sub1.Text(L"深色");
@@ -388,7 +348,7 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutSubItem item3_3;
         item3_3.Style(styleSub);
         item3_3.Icon(CreateFontIcon(L"\ue746"));
-        item3_3.Text(L"设置窗口圆角");
+        item3_3.Text(L"设置圆角");
         MenuFlyoutItem item3_3_sub1;
         item3_3_sub1.Style(style);
         item3_3_sub1.Text(L"无圆角");
@@ -462,6 +422,7 @@ namespace winrt::StarlightGUI::implementation
         menuFlyout.Items().Append(item1_3);
 		menuFlyout.Items().Append(separator1);
         menuFlyout.Items().Append(item2_1);
+        menuFlyout.Items().Append(item2_2);
         menuFlyout.Items().Append(item2_3);
         menuFlyout.Items().Append(item2_4);
         menuFlyout.Items().Append(separator2);

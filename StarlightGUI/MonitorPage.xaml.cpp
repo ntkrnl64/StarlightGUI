@@ -805,7 +805,7 @@ namespace winrt::StarlightGUI::implementation
 		MenuFlyoutItem item1_2;
 		item1_2.Style(style);
 		item1_2.Icon(CreateFontIcon(L"\ue72c"));
-		item1_2.Text(L"扫描EPT/NPT钩子");
+		item1_2.Text(L"扫描 EPT/NPT 钩子");
 		item1_2.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) mutable -> winrt::Windows::Foundation::IAsyncAction {
 			KernelInstance::EnableEPTScan();
 			WaitAndReloadAsync(100);

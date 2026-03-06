@@ -470,13 +470,16 @@
     <None Include="Assets\AstralX.sys">
       <Filter>Assets</Filter>
     </None>
-    <None Include="Assets\AXBand.dll">
-      <Filter>Assets</Filter>
-    </None>
     <None Include="nvml.dll">
       <Filter>Assets</Filter>
     </None>
     <None Include="Assets\fix_services.bat">
+      <Filter>Assets</Filter>
+    </None>
+    <None Include="Assets\IAMKeyHacker.dll">
+      <Filter>Assets</Filter>
+    </None>
+    <None Include="Assets\WindowTopMost.dll">
       <Filter>Assets</Filter>
     </None>
   </ItemGroup>

@@ -87,13 +87,13 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutItem item1_1;
         item1_1.Style(style);
         item1_1.Icon(CreateFontIcon(L"\ue711"));
-        item1_1.Text(L"结束线程");
+        item1_1.Text(L"终止");
         item1_1.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
             if (TaskUtils::_TerminateThread(item.Id())) {
-                CreateInfoBarAndDisplay(L"成功", L"成功结束线程: " + item.Address() + L" (" + to_hstring(item.Id()) + L")", InfoBarSeverity::Success, g_infoWindowInstance);
+                CreateInfoBarAndDisplay(L"成功", L"成功终止线程: " + item.Address() + L" (" + to_hstring(item.Id()) + L")", InfoBarSeverity::Success, g_infoWindowInstance);
                 LoadThreadList();
             }
-            else CreateInfoBarAndDisplay(L"失败", L"无法结束线程: " + item.Address() + L" (" + to_hstring(item.Id()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_infoWindowInstance);
+            else CreateInfoBarAndDisplay(L"失败", L"无法终止线程: " + item.Address() + L" (" + to_hstring(item.Id()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_infoWindowInstance);
             co_return;
             });
 
@@ -101,13 +101,13 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutItem item1_2;
         item1_2.Style(style);
         item1_2.Icon(CreateFontIcon(L"\ue8f0"));
-        item1_2.Text(L"结束线程 (内核)");
+        item1_2.Text(L"终止 (内核)");
         item1_2.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
             if (KernelInstance::_ZwTerminateThread(item.Id())) {
-                CreateInfoBarAndDisplay(L"成功", L"成功结束线程: " + item.Address() + L" (" + to_hstring(item.Id()) + L")", InfoBarSeverity::Success, g_infoWindowInstance);
+                CreateInfoBarAndDisplay(L"成功", L"成功终止线程: " + item.Address() + L" (" + to_hstring(item.Id()) + L")", InfoBarSeverity::Success, g_infoWindowInstance);
                 LoadThreadList();
             }
-            else CreateInfoBarAndDisplay(L"失败", L"无法结束线程: " + item.Address() + L" (" + to_hstring(item.Id()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_infoWindowInstance);
+            else CreateInfoBarAndDisplay(L"失败", L"无法终止线程: " + item.Address() + L" (" + to_hstring(item.Id()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_infoWindowInstance);
             co_return;
             });
 
@@ -115,14 +115,14 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutItem item1_3;
         item1_3.Style(style);
         item1_3.Icon(CreateFontIcon(L"\ue945"));
-        item1_3.Text(L"结束线程 (内存抹杀)");
+        item1_3.Text(L"终止 (内存抹杀)");
         item1_3.Click([this, item](IInspectable const& sender, RoutedEventArgs const& e) -> winrt::Windows::Foundation::IAsyncAction {
             if (safeAcceptedPID == item.Id() || !dangerous_confirm) {
                 if (KernelInstance::MurderThread(item.Id())) {
-                    CreateInfoBarAndDisplay(L"成功", L"成功结束线程: " + item.Address() + L" (" + to_hstring(item.Id()) + L")", InfoBarSeverity::Success, g_infoWindowInstance);
+                    CreateInfoBarAndDisplay(L"成功", L"成功终止线程: " + item.Address() + L" (" + to_hstring(item.Id()) + L")", InfoBarSeverity::Success, g_infoWindowInstance);
                     LoadThreadList();
                 }
-                else CreateInfoBarAndDisplay(L"失败", L"无法结束线程: " + item.Address() + L" (" + to_hstring(item.Id()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_infoWindowInstance);
+                else CreateInfoBarAndDisplay(L"失败", L"无法终止线程: " + item.Address() + L" (" + to_hstring(item.Id()) + L"), 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_infoWindowInstance);
             }
             else {
                 safeAcceptedPID = item.Id();
@@ -138,7 +138,7 @@ namespace winrt::StarlightGUI::implementation
         MenuFlyoutSubItem item2_1;
         item2_1.Style(styleSub);
         item2_1.Icon(CreateFontIcon(L"\ue912"));
-        item2_1.Text(L"设置线程状态");
+        item2_1.Text(L"设置状态");
         MenuFlyoutItem item2_1_sub1;
         item2_1_sub1.Style(style);
         item2_1_sub1.Icon(CreateFontIcon(L"\ue769"));
