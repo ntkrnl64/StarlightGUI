@@ -308,7 +308,7 @@ namespace winrt::StarlightGUI::implementation
         m_allFiles.clear();
 
         KernelInstance::QueryFile(path, m_allFiles);
-        LOG_INFO(__WFUNCTION__, L"Enumerated files (kernel mode), %d entry(s).", m_allFiles.size());
+        LOG_INFO(__WFUNCTION__, L"Enumerated files, %d entry(s).", m_allFiles.size());
 
         co_await wil::resume_foreground(DispatcherQueue());
         if (loadToken != m_currentLoadToken) {
