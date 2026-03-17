@@ -40,7 +40,6 @@ namespace winrt::StarlightGUI::implementation
         InitializeComponent();
 
         ModuleListView().ItemsSource(m_moduleList);
-        if (!list_animation) ModuleListView().ItemContainerTransitions().Clear();
 
         this->Loaded([this](auto&&, auto&&) {
             LoadModuleList();
@@ -108,12 +107,8 @@ namespace winrt::StarlightGUI::implementation
         winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
         winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
     {
-        if (args.InRecycleQueue())
-            return;
+        slg::ApplyListRevealFocusTag(sender, args);
 
-        // 将 Tag 设到容器上，便于 ListViewItemPresenter 通过 TemplatedParent 绑定
-        if (auto itemContainer = args.ItemContainer())
-            itemContainer.Tag(sender.Tag());
     }
 
     winrt::Windows::Foundation::IAsyncAction Process_ModulePage::LoadModuleList()
@@ -167,3 +162,5 @@ namespace winrt::StarlightGUI::implementation
         LOG_INFO(__WFUNCTION__, L"Loaded module list, %d entry(s) in total.", m_moduleList.Size());
     }
 }
+
+

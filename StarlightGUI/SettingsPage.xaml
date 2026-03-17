@@ -258,8 +258,8 @@
                 <essential:SettingsCard
                     Margin="0,0,0,10"
                     essential:RevealFocusPanel.AttachToPanel="{x:Bind RevealFocusPanel}"
-                    Description="列表的渐入动画效果"
-                    Header="列表动画"
+                    Description="控制列表是否显示 RevealFocus 特效"
+                    Header="列表特效"
                     IsActionIconVisible="False"
                     IsClickEnabled="True">
                     <essential:SettingsCard.HeaderIcon>

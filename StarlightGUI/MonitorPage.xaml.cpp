@@ -35,22 +35,6 @@ namespace winrt::StarlightGUI::implementation
 			HALPDPTListView().ItemsSource(m_generalList);
 		}
 
-		if (!list_animation) {
-			ObjectListView().ItemContainerTransitions().Clear();
-			CallbackListView().ItemContainerTransitions().Clear();
-			MiniFilterListView().ItemContainerTransitions().Clear();
-			StdFilterListView().ItemContainerTransitions().Clear();
-			SSDTListView().ItemContainerTransitions().Clear();
-			SSSDTListView().ItemContainerTransitions().Clear();
-			IoTimerListView().ItemContainerTransitions().Clear();
-			ExCallbackListView().ItemContainerTransitions().Clear();
-			IDTListView().ItemContainerTransitions().Clear();
-			GDTListView().ItemContainerTransitions().Clear();
-			PiDDBListView().ItemContainerTransitions().Clear();
-			HALDPTListView().ItemContainerTransitions().Clear();
-			HALPDPTListView().ItemContainerTransitions().Clear();
-		}
-
 		winrt::Microsoft::UI::Xaml::Application::Current().Resources().MergedDictionaries();
 
 		Unloaded([this](auto&&, auto&&) {
@@ -435,12 +419,8 @@ namespace winrt::StarlightGUI::implementation
         winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
         winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
     {
-        if (args.InRecycleQueue())
-            return;
+        slg::ApplyListRevealFocusTag(sender, args);
 
-        // 将 Tag 设到容器上，便于 ListViewItemPresenter 通过 TemplatedParent 绑定
-        if (auto itemContainer = args.ItemContainer())
-            itemContainer.Tag(sender.Tag());
     }
 
 	void MonitorPage::CallbackListView_RightTapped(IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::RightTappedRoutedEventArgs const& e)
@@ -1233,3 +1213,5 @@ namespace winrt::StarlightGUI::implementation
 		co_return;
 	}
 }
+
+

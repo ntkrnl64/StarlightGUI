@@ -20,7 +20,6 @@ namespace winrt::StarlightGUI::implementation
 		InitializeComponent();
 
         StackListView().ItemsSource(m_stackList);
-        if (!list_animation) StackListView().ItemContainerTransitions().Clear();
 
         Loaded([this](auto&&, auto&&){
             if (!loaded) {
@@ -481,11 +480,9 @@ namespace winrt::StarlightGUI::implementation
         winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
         winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
     {
-        if (args.InRecycleQueue())
-            return;
+        slg::ApplyListRevealFocusTag(sender, args);
 
-        // 将 Tag 设到容器上，便于 ListViewItemPresenter 通过 TemplatedParent 绑定
-        if (auto itemContainer = args.ItemContainer())
-            itemContainer.Tag(sender.Tag());
     }
 }
+
+

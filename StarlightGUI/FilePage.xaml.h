@@ -26,8 +26,9 @@ namespace winrt::StarlightGUI::implementation
 
         winrt::Windows::Foundation::IAsyncAction LoadFileList();
         winrt::Windows::Foundation::IAsyncAction WaitAndReloadAsync(int interval);
-        winrt::Windows::Foundation::IAsyncAction GetFileInfoAsync(const winrt::StarlightGUI::FileInfo& file);
-        winrt::Windows::Foundation::IAsyncAction GetFileIconAsync(const winrt::StarlightGUI::FileInfo& file);
+        winrt::Windows::Foundation::IAsyncAction GetFileIconAsync(winrt::StarlightGUI::FileInfo file);
+        void PopulateFileMetaBatch(std::wstring const& directoryPath);
+        static std::wstring GetIconCacheKey(winrt::StarlightGUI::FileInfo file);
 
         winrt::Windows::Foundation::Collections::IObservableVector<winrt::StarlightGUI::FileInfo> m_fileList{
             winrt::multi_threaded_observable_vector<winrt::StarlightGUI::FileInfo>()
@@ -35,21 +36,14 @@ namespace winrt::StarlightGUI::implementation
 
         slg::coroutine CopyFiles();
 
-        void AddPreviousItem();
-        slg::coroutine LoadMoreFiles();
-        void CheckAndLoadMoreItems();
+        winrt::Windows::Foundation::IAsyncAction LoadMetaForCurrentList(std::wstring path, uint64_t loadToken);
+        void UpdateRealizedItemIcon(winrt::StarlightGUI::FileInfo const& file, winrt::Microsoft::UI::Xaml::Media::ImageSource const& icon);
         void ResetState();
-        bool FindScrollViewer(DependencyObject parent);
-
-        winrt::Microsoft::UI::Xaml::DispatcherTimer m_scrollCheckTimer{ nullptr };
         winrt::Microsoft::UI::Xaml::DispatcherTimer reloadTimer;
-
-        winrt::Microsoft::UI::Xaml::Controls::ScrollViewer m_listScrollViewer{ nullptr };
         std::vector<winrt::StarlightGUI::FileInfo> m_allFiles;
-        size_t m_loadedCount = 0;
         bool m_isLoadingFiles = false;
-        bool m_isLoadingMore = false;
-        bool m_hasMoreFiles = true;
+        bool m_isPostLoading = false;
+        uint64_t m_currentLoadToken = 0;
 
         inline static bool m_isNameAscending = true;
         inline static bool m_isModifyTimeAscending = true;

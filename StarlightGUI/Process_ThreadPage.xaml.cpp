@@ -41,7 +41,6 @@ namespace winrt::StarlightGUI::implementation
         InitializeComponent();
 
         ThreadListView().ItemsSource(m_threadList);
-        if (!list_animation) ThreadListView().ItemContainerTransitions().Clear();
 
         this->Loaded([this](auto&&, auto&&) {
             LoadThreadList();
@@ -178,12 +177,8 @@ namespace winrt::StarlightGUI::implementation
         winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
         winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
     {
-        if (args.InRecycleQueue())
-            return;
+        slg::ApplyListRevealFocusTag(sender, args);
 
-        // 将 Tag 设到容器上，便于 ListViewItemPresenter 通过 TemplatedParent 绑定
-        if (auto itemContainer = args.ItemContainer())
-            itemContainer.Tag(sender.Tag());
     }
 
     winrt::Windows::Foundation::IAsyncAction Process_ThreadPage::LoadThreadList()
@@ -297,3 +292,5 @@ namespace winrt::StarlightGUI::implementation
         currentSortingType = column;
     }
 }
+
+

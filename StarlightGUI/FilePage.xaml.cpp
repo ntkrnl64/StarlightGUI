@@ -7,6 +7,7 @@
 #include <chrono>
 #include <shellapi.h>
 #include <CopyFileDialog.xaml.h>
+#include <unordered_set>
 
 using namespace winrt;
 using namespace WinUI3Package;
@@ -15,33 +16,52 @@ using namespace Microsoft::UI::Xaml;
 
 namespace winrt::StarlightGUI::implementation
 {
+    template <typename T>
+    T FindVisualChild(winrt::Microsoft::UI::Xaml::DependencyObject const& parent)
+    {
+        if (!parent) return nullptr;
+
+        int count = winrt::Microsoft::UI::Xaml::Media::VisualTreeHelper::GetChildrenCount(parent);
+        for (int i = 0; i < count; ++i) {
+            auto child = winrt::Microsoft::UI::Xaml::Media::VisualTreeHelper::GetChild(parent, i);
+            if (auto typed = child.try_as<T>()) return typed;
+            if (auto nested = FindVisualChild<T>(child)) return nested;
+        }
+        return nullptr;
+    }
+
 	hstring currentDirectory = L"C:\\";
     static hstring safeAcceptedName = L"";
-    static std::unordered_map<std::wstring, std::optional<winrt::Microsoft::UI::Xaml::Media::ImageSource>> iconCache;
+    static std::unordered_map<std::wstring, winrt::Microsoft::UI::Xaml::Media::ImageSource> iconCache;
+    static std::unordered_set<std::wstring> iconLoadingKeys;
+    static std::unordered_map<std::wstring, std::vector<winrt::StarlightGUI::FileInfo>> iconPendingFiles;
     static HDC hdc{ nullptr };
+
+    static bool IsFastIconCacheExtension(std::wstring ext)
+    {
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::towlower);
+        static const std::unordered_set<std::wstring> fastExts = {
+            L".txt", L".log", L".ini", L".inf", L".cfg", L".conf",
+            L".json", L".xml", L".yaml", L".yml", L".csv",
+            L".dll", L".sys", L".mui", L"bin",
+            L".dat", L".bak", L".tmp",
+            L".reg", L".md", L".bat", L".cmd", L".ps1", L".vbs", L".js", L".jse", L".wsf",
+			L".c", L".cpp", L".java", L".kt", L".cs", L".h", L".hpp", L".py", L".rb", L".go", L".rs"
+        };
+        return fastExts.find(ext) != fastExts.end();
+    }
 
     FilePage::FilePage() {
         InitializeComponent();
 
         hdc = GetDC(NULL);
         FileListView().ItemsSource(m_fileList);
-        if (!list_animation) FileListView().ItemContainerTransitions().Clear();
-
-        m_scrollCheckTimer = winrt::Microsoft::UI::Xaml::DispatcherTimer();
-        m_scrollCheckTimer.Interval(std::chrono::milliseconds(100));
-        m_scrollCheckTimer.Tick([this](auto&&, auto&&) {
-            if (!m_isLoadingFiles) CheckAndLoadMoreItems();
-            });
 
         this->Loaded([this](auto&&, auto&&) {
-            m_scrollCheckTimer.Start();
             LoadFileList();
             });
 
         this->Unloaded([this](auto&&, auto&&) {
-            if (m_scrollCheckTimer) {
-                m_scrollCheckTimer.Stop();
-            }
             ReleaseDC(NULL, hdc);
             });
 
@@ -249,60 +269,21 @@ namespace winrt::StarlightGUI::implementation
         winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
         winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
     {
-        if (args.InRecycleQueue())
-            return;
+        slg::ApplyListRevealFocusTag(sender, args);
 
-        // 将 Tag 设到容器上，便于 ListViewItemPresenter 通过 TemplatedParent 绑定
-        if (auto itemContainer = args.ItemContainer())
-            itemContainer.Tag(sender.Tag());
-    }
-
-    void FilePage::CheckAndLoadMoreItems() {
-        if (!m_listScrollViewer && !FindScrollViewer(FileListView())) return;
-        if (m_isLoadingMore || !m_hasMoreFiles) return;
-        LoadMoreFiles();
-    }
-
-    slg::coroutine FilePage::LoadMoreFiles() {
-        if (m_isLoadingMore || m_loadedCount >= m_allFiles.size()) {
-            m_hasMoreFiles = false;
-            co_return;
-        }
-        m_isLoadingMore = true;
-
-        auto lifetime = get_strong();
-
-        try {
-            size_t start = m_loadedCount;
-            size_t end = (start + 100) < m_allFiles.size() ? (start + 100) : m_allFiles.size();
-
-            co_await wil::resume_foreground(DispatcherQueue());
-
-            winrt::hstring query = SearchBox().Text();
-
-            for (size_t i = start; i < end; ++i) {
-                bool shouldRemove = query.empty() ? false : ApplyFilter(m_allFiles[i], query);
-                if (shouldRemove) continue;
-
-                co_await GetFileIconAsync(m_allFiles[i]);
-                m_fileList.Append(m_allFiles[i]);
+        if (auto file = args.Item().try_as<winrt::StarlightGUI::FileInfo>()) {
+            if (file.Icon()) {
+                UpdateRealizedItemIcon(file, file.Icon());
             }
-
-            m_loadedCount = end;
-            m_hasMoreFiles = (m_loadedCount < m_allFiles.size());
-
-            LOG_INFO(__WFUNCTION__, L"Loading file list range [%d,%d)", start, end);
+            else {
+                GetFileIconAsync(file);
+            }
         }
-        catch (...) {
-            LOG_ERROR(__WFUNCTION__, L"Error while loading file list!");
-        }
-
-        m_isLoadingMore = false;
     }
 
     winrt::Windows::Foundation::IAsyncAction FilePage::LoadFileList()
     {
-        if (m_isLoadingFiles) co_return;
+        if (m_isLoadingFiles || m_isPostLoading) co_return;
         m_isLoadingFiles = true;
 
         LOG_INFO(__WFUNCTION__, L"Loading file list...");
@@ -314,6 +295,7 @@ namespace winrt::StarlightGUI::implementation
         auto lifetime = get_strong();
 
         std::wstring path = FixBackSplash(currentDirectory);
+        auto loadToken = ++m_currentLoadToken;
         currentDirectory = path;
         PathBox().Text(currentDirectory);
         LOG_INFO(__WFUNCTION__, L"Path = %s", path.c_str());
@@ -328,24 +310,36 @@ namespace winrt::StarlightGUI::implementation
         KernelInstance::QueryFile(path, m_allFiles);
         LOG_INFO(__WFUNCTION__, L"Enumerated files (kernel mode), %d entry(s).", m_allFiles.size());
 
-        for (const auto& file : m_allFiles) {
-            co_await GetFileInfoAsync(file);
-            file.Path(FixBackSplash(file.Path()));
+        co_await wil::resume_foreground(DispatcherQueue());
+        if (loadToken != m_currentLoadToken) {
+            m_isLoadingFiles = false;
+            co_return;
         }
 
-        co_await wil::resume_foreground(DispatcherQueue());
-
         ApplySort(currentSortingOption, currentSortingType);
+        std::stable_partition(m_allFiles.begin(), m_allFiles.end(), [](auto const& file) { return file.Directory(); });
 
-        // 将文件夹放在文件前面
-        std::sort(m_allFiles.begin(), m_allFiles.end(), [](const auto& a, const auto& b) {
-            if (a.Directory() && !b.Directory()) {
-                return true;
-            }
-            return false;
-            });
+        auto newFileList = winrt::multi_threaded_observable_vector<winrt::StarlightGUI::FileInfo>();
 
-        AddPreviousItem();
+        if (currentDirectory.size() > 3) {
+            auto previousPage = winrt::make<winrt::StarlightGUI::implementation::FileInfo>();
+            previousPage.Name(L"上个文件夹");
+            previousPage.Flag(999);
+            newFileList.Append(previousPage);
+        }
+
+        winrt::hstring query = SearchBox().Text();
+        for (size_t i = 0; i < m_allFiles.size(); ++i) {
+            bool shouldRemove = query.empty() ? false : ApplyFilter(m_allFiles[i], query);
+            if (shouldRemove) continue;
+
+            newFileList.Append(m_allFiles[i]);
+        }
+        m_fileList = newFileList;
+        FileListView().ItemsSource(m_fileList);
+
+        m_isPostLoading = true;
+        LoadMetaForCurrentList(path, loadToken);
 
         auto end = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -357,26 +351,106 @@ namespace winrt::StarlightGUI::implementation
 
         LOG_INFO(__WFUNCTION__, L"Loaded file list, %d entry(s) in total.", m_allFiles.size());
 
-        // 立刻加载一次
-        LoadMoreFiles();
-
         m_isLoadingFiles = false;
     }
 
-    winrt::Windows::Foundation::IAsyncAction FilePage::GetFileInfoAsync(const winrt::StarlightGUI::FileInfo& file)
+    winrt::Windows::Foundation::IAsyncAction FilePage::LoadMetaForCurrentList(std::wstring path, uint64_t loadToken)
     {
-        WIN32_FIND_DATA findFileData;
-        HANDLE hFind = FindFirstFile(file.Path().c_str(), &findFileData);
+        auto lifetime = get_strong();
 
-        if (hFind != INVALID_HANDLE_VALUE) {
-            if (file.SizeULong() == 0) {
-                file.SizeULong(((ULONG64)findFileData.nFileSizeHigh << 32) | findFileData.nFileSizeLow);
+        co_await winrt::resume_background();
+
+        bool hasError = false;
+        try {
+            PopulateFileMetaBatch(path);
+        }
+        catch (...) {
+            hasError = true;
+        }
+
+        co_await wil::resume_foreground(DispatcherQueue());
+        if (hasError) {
+            m_isPostLoading = false;
+            co_return;
+        }
+        if (!IsLoaded() || loadToken != m_currentLoadToken) {
+            m_isPostLoading = false;
+            co_return;
+        }
+
+        // 触发一次轻量刷新，确保更新后的属性及时反映到列表，并避免播放第二次刷新动画
+        auto oldTransitions = FileListView().ItemContainerTransitions();
+        FileListView().ItemContainerTransitions().Clear();
+        FileListView().ItemsSource(nullptr);
+        FileListView().ItemsSource(m_fileList);
+        FileListView().ItemContainerTransitions(oldTransitions);
+        m_isPostLoading = false;
+    }
+
+    void FilePage::PopulateFileMetaBatch(std::wstring const& directoryPath)
+    {
+        auto fillUnknownMeta = [](winrt::StarlightGUI::FileInfo const& file) {
+            if (!file.Directory()) {
+                if (file.SizeULong() == 0) file.Size(L"0 B");
+                else file.Size(FormatMemorySize(file.SizeULong()));
             }
-            file.Size(FormatMemorySize(file.SizeULong()));
+            else {
+                file.SizeULong(0);
+                file.Size(L"");
+            }
+            if (file.ModifyTime().empty()) file.ModifyTime(L"(未知)");
+            };
 
-            file.ModifyTimeULong(((ULONG64)findFileData.ftLastAccessTime.dwHighDateTime << 32) | findFileData.ftLastAccessTime.dwLowDateTime);
-            SYSTEMTIME st;
-            if (FileTimeToSystemTime(&findFileData.ftLastAccessTime, &st))
+        std::wstring searchPath = directoryPath + L"\\*";
+        WIN32_FIND_DATAW data{};
+        HANDLE hFind = FindFirstFileExW(searchPath.c_str(), FindExInfoBasic, &data, FindExSearchNameMatch, nullptr, FIND_FIRST_EX_LARGE_FETCH);
+        if (hFind == INVALID_HANDLE_VALUE) {
+            for (auto const& file : m_allFiles) {
+                file.Path(FixBackSplash(file.Path()));
+                fillUnknownMeta(file);
+            }
+            return;
+        }
+
+        std::unordered_map<std::wstring, WIN32_FIND_DATAW> metaMap;
+        metaMap.reserve(m_allFiles.size() * 2);
+
+        auto normalize = [](std::wstring str) {
+            std::transform(str.begin(), str.end(), str.begin(), ::towlower);
+            return str;
+            };
+
+        do {
+            if (wcscmp(data.cFileName, L".") == 0 || wcscmp(data.cFileName, L"..") == 0) continue;
+            metaMap[normalize(data.cFileName)] = data;
+        } while (FindNextFileW(hFind, &data));
+
+        FindClose(hFind);
+
+        for (auto const& file : m_allFiles) {
+            file.Path(FixBackSplash(file.Path()));
+            std::wstring name = file.Name().c_str();
+            auto it = metaMap.find(normalize(name));
+            if (it == metaMap.end()) {
+                fillUnknownMeta(file);
+                continue;
+            }
+
+            auto const& d = it->second;
+            const bool isDir = (d.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+            if (!isDir) {
+                ULONG64 size = ((ULONG64)d.nFileSizeHigh << 32) | d.nFileSizeLow;
+                file.SizeULong(size);
+                file.Size(FormatMemorySize(size));
+            }
+            else {
+                file.SizeULong(0);
+                file.Size(L"");
+            }
+
+            file.ModifyTimeULong(((ULONG64)d.ftLastWriteTime.dwHighDateTime << 32) | d.ftLastWriteTime.dwLowDateTime);
+            SYSTEMTIME st{};
+            if (FileTimeToSystemTime(&d.ftLastWriteTime, &st))
             {
                 std::wstringstream ss;
                 ss << std::setw(4) << std::setfill(L'0') << st.wYear << L"/"
@@ -391,77 +465,158 @@ namespace winrt::StarlightGUI::implementation
             {
                 file.ModifyTime(L"(未知)");
             }
+        }
+    }
 
-            FindClose(hFind);
+    std::wstring FilePage::GetIconCacheKey(winrt::StarlightGUI::FileInfo file)
+    {
+        if (!file) return L"__invalid__";
+        if (file.Flag() == 999) return L"__dir__";
+        if (file.Directory()) return L"__dir__";
+
+        std::wstring name = file.Name().c_str();
+        auto dot = name.find_last_of(L'.');
+        if (dot != std::wstring::npos) {
+            std::wstring ext = name.substr(dot);
+            if (IsFastIconCacheExtension(ext)) {
+                std::transform(ext.begin(), ext.end(), ext.begin(), ::towlower);
+                return L"__ext__" + ext;
+            }
+        }
+
+        std::wstring path = file.Path().c_str();
+        std::transform(path.begin(), path.end(), path.begin(), ::towlower);
+        return L"__path__" + path;
+    }
+
+    winrt::Windows::Foundation::IAsyncAction FilePage::GetFileIconAsync(winrt::StarlightGUI::FileInfo file)
+    {
+        if (!file) co_return;
+        co_await wil::resume_foreground(DispatcherQueue());
+
+        std::wstring cacheKey = GetIconCacheKey(file);
+        auto found = iconCache.find(cacheKey);
+        if (found != iconCache.end()) {
+            file.Icon(found->second);
+            UpdateRealizedItemIcon(file, found->second);
+            co_return;
+        }
+
+        iconPendingFiles[cacheKey].push_back(file);
+        if (iconLoadingKeys.find(cacheKey) != iconLoadingKeys.end()) co_return;
+        iconLoadingKeys.insert(cacheKey);
+
+        SHFILEINFO shfi{};
+        bool useFastAttrQuery = file.Directory() || cacheKey.find(L"__ext__") == 0;
+        if (useFastAttrQuery) {
+            DWORD attrs = file.Directory() ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL;
+            std::wstring lookup = file.Directory() ? L"folder" : cacheKey.substr(7);
+            if (!SHGetFileInfoW(lookup.c_str(), attrs, &shfi, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES)) {
+                if (!SHGetFileInfoW(L".", FILE_ATTRIBUTE_NORMAL, &shfi, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES)) {
+                    iconLoadingKeys.erase(cacheKey);
+                    iconPendingFiles.erase(cacheKey);
+                    co_return;
+                }
+            }
         }
         else {
-            file.Size(L"-1 (未知)");
-            file.ModifyTime(L"(未知)");
+            if (!SHGetFileInfoW(file.Path().c_str(), 0, &shfi, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON)) {
+                if (!SHGetFileInfoW(L".", FILE_ATTRIBUTE_NORMAL, &shfi, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES)) {
+                    iconLoadingKeys.erase(cacheKey);
+                    iconPendingFiles.erase(cacheKey);
+                    co_return;
+                }
+            }
         }
 
-        if (file.Directory()) file.Size(L"");
+        ICONINFO iconInfo{};
+        if (!GetIconInfo(shfi.hIcon, &iconInfo)) {
+            DestroyIcon(shfi.hIcon);
+            iconLoadingKeys.erase(cacheKey);
+            iconPendingFiles.erase(cacheKey);
+            co_return;
+        }
+
+        BITMAP bmp{};
+        GetObject(iconInfo.hbmColor, sizeof(bmp), &bmp);
+        BITMAPINFOHEADER bmiHeader = { 0 };
+        bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bmiHeader.biWidth = bmp.bmWidth;
+        bmiHeader.biHeight = bmp.bmHeight;
+        bmiHeader.biPlanes = 1;
+        bmiHeader.biBitCount = 32;
+        bmiHeader.biCompression = BI_RGB;
+
+        int dataSize = bmp.bmWidthBytes * bmp.bmHeight;
+        std::vector<BYTE> buffer(dataSize);
+        GetDIBits(hdc, iconInfo.hbmColor, 0, bmp.bmHeight, buffer.data(), reinterpret_cast<BITMAPINFO*>(&bmiHeader), DIB_RGB_COLORS);
+
+        winrt::Microsoft::UI::Xaml::Media::Imaging::WriteableBitmap writeableBitmap(bmp.bmWidth, bmp.bmHeight);
+        uint8_t* pixelData = writeableBitmap.PixelBuffer().data();
+        int rowSize = bmp.bmWidth * 4;
+        for (int i = 0; i < bmp.bmHeight; ++i) {
+            int srcOffset = i * rowSize;
+            int dstOffset = (bmp.bmHeight - 1 - i) * rowSize;
+            std::memcpy(pixelData + dstOffset, buffer.data() + srcOffset, rowSize);
+        }
+
+        DeleteObject(iconInfo.hbmColor);
+        DeleteObject(iconInfo.hbmMask);
+        DestroyIcon(shfi.hIcon);
+
+        auto icon = writeableBitmap.as<winrt::Microsoft::UI::Xaml::Media::ImageSource>();
+        iconCache.insert_or_assign(cacheKey, icon);
+
+        auto pendingIt = iconPendingFiles.find(cacheKey);
+        if (pendingIt != iconPendingFiles.end()) {
+            for (auto const& pendingFile : pendingIt->second) {
+                if (pendingFile && !pendingFile.Icon()) {
+                    pendingFile.Icon(icon);
+                    UpdateRealizedItemIcon(pendingFile, icon);
+                }
+            }
+            iconPendingFiles.erase(pendingIt);
+        }
+
+        if (file && !file.Icon()) {
+            file.Icon(icon);
+            UpdateRealizedItemIcon(file, icon);
+        }
+        iconLoadingKeys.erase(cacheKey);
 
         co_return;
     }
 
-    winrt::Windows::Foundation::IAsyncAction FilePage::GetFileIconAsync(const winrt::StarlightGUI::FileInfo& file)
+    void FilePage::UpdateRealizedItemIcon(winrt::StarlightGUI::FileInfo const& file, winrt::Microsoft::UI::Xaml::Media::ImageSource const& icon)
     {
-        std::wstring filePath = file.Path().c_str();
-        if (iconCache.find(filePath) == iconCache.end()) {
-            SHFILEINFO shfi;
-            if (!SHGetFileInfoW(filePath.c_str(), 0, &shfi, sizeof(SHFILEINFO), SHGFI_ICON)) {
-                SHGetFileInfoW(L"", 0, &shfi, sizeof(SHFILEINFO), SHGFI_ICON);
-            }
-            ICONINFO iconInfo;
-            if (GetIconInfo(shfi.hIcon, &iconInfo)) {
-                BITMAP bmp;
-                GetObject(iconInfo.hbmColor, sizeof(bmp), &bmp);
-                BITMAPINFOHEADER bmiHeader = { 0 };
-                bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-                bmiHeader.biWidth = bmp.bmWidth;
-                bmiHeader.biHeight = bmp.bmHeight;
-                bmiHeader.biPlanes = 1;
-                bmiHeader.biBitCount = 32;
-                bmiHeader.biCompression = BI_RGB;
+        if (!file || !icon || !IsLoaded()) return;
 
-                int dataSize = bmp.bmWidthBytes * bmp.bmHeight;
-                std::vector<BYTE> buffer(dataSize);
+        auto container = FileListView().ContainerFromItem(file).try_as<ListViewItem>();
+        if (!container) return;
 
-                GetDIBits(hdc, iconInfo.hbmColor, 0, bmp.bmHeight, buffer.data(), reinterpret_cast<BITMAPINFO*>(&bmiHeader), DIB_RGB_COLORS);
+        auto root = container.ContentTemplateRoot();
+        if (!root) return;
 
-                winrt::Microsoft::UI::Xaml::Media::Imaging::WriteableBitmap writeableBitmap(bmp.bmWidth, bmp.bmHeight);
-
-                // 将数据写入 WriteableBitmap
-                uint8_t* data = writeableBitmap.PixelBuffer().data();
-                int rowSize = bmp.bmWidth * 4;
-                for (int i = 0; i < bmp.bmHeight; ++i) {
-                    int srcOffset = i * rowSize;
-                    int dstOffset = (bmp.bmHeight - 1 - i) * rowSize;
-                    std::memcpy(data + dstOffset, buffer.data() + srcOffset, rowSize);
-                }
-
-                DeleteObject(iconInfo.hbmColor);
-                DeleteObject(iconInfo.hbmMask);
-                DestroyIcon(shfi.hIcon);
-
-                // 将图标缓存到 map 中
-                iconCache[filePath] = writeableBitmap.as<winrt::Microsoft::UI::Xaml::Media::ImageSource>();
-            }
+        auto image = FindVisualChild<Image>(root);
+        if (image) {
+            image.Source(icon);
         }
-        file.Icon(iconCache[filePath].value());
-
-        co_return;
     }
 
     void FilePage::SearchBox_TextChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e) {
         if (!IsLoaded()) return;
 
+        LoadingRing().IsActive(true);
         WaitAndReloadAsync(200);
     }
 
     void FilePage::PathBox_KeyDown(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::KeyRoutedEventArgs const& e) {
         if (e.Key() == winrt::Windows::System::VirtualKey::Enter)
         {
+            if (m_isLoadingFiles || m_isPostLoading) {
+                e.Handled(true);
+                return;
+            }
             try
             {
                 fs::path path(PathBox().Text().c_str());
@@ -489,6 +644,8 @@ namespace winrt::StarlightGUI::implementation
 
     void FilePage::ColumnHeader_Click(IInspectable const& sender, RoutedEventArgs const& e)
     {
+        ++m_currentLoadToken;
+
         Button clickedButton = sender.as<Button>();
         winrt::hstring columnName = clickedButton.Tag().as<winrt::hstring>();
 
@@ -512,7 +669,27 @@ namespace winrt::StarlightGUI::implementation
         }
 
         ResetState();
-        AddPreviousItem();
+
+        auto newFileList = winrt::multi_threaded_observable_vector<winrt::StarlightGUI::FileInfo>();
+
+        if (currentDirectory.size() > 3) {
+            auto previousPage = winrt::make<winrt::StarlightGUI::implementation::FileInfo>();
+            previousPage.Name(L"上个文件夹");
+            previousPage.Flag(999);
+            newFileList.Append(previousPage);
+        }
+
+        winrt::hstring query = SearchBox().Text();
+        for (size_t i = 0; i < m_allFiles.size(); ++i) {
+            bool shouldRemove = query.empty() ? false : ApplyFilter(m_allFiles[i], query);
+            if (shouldRemove) continue;
+
+            newFileList.Append(m_allFiles[i]);
+        }
+
+        m_fileList = newFileList;
+        FileListView().ItemsSource(m_fileList);
+
     }
 
     // 排序切换
@@ -585,6 +762,7 @@ namespace winrt::StarlightGUI::implementation
 
     slg::coroutine FilePage::RefreshButton_Click(IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e)
     {
+        if (m_isLoadingFiles || m_isPostLoading) co_return;
         RefreshButton().IsEnabled(false);
         co_await LoadFileList();
         RefreshButton().IsEnabled(true);
@@ -593,6 +771,7 @@ namespace winrt::StarlightGUI::implementation
 
     slg::coroutine FilePage::NextDriveButton_Click(IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e)
     {
+        if (m_isLoadingFiles || m_isPostLoading) co_return;
         static std::vector<std::wstring> drives;
         static int currentIndex = 1;
 
@@ -613,39 +792,8 @@ namespace winrt::StarlightGUI::implementation
         co_await LoadFileList();
     }
 
-    bool FilePage::FindScrollViewer(DependencyObject parent) {
-        if (!m_listScrollViewer) {
-            if (auto sv = parent.try_as<winrt::Microsoft::UI::Xaml::Controls::ScrollViewer>()) {
-                m_listScrollViewer = sv;
-                return true;
-            }
-            auto childrenCount = winrt::Microsoft::UI::Xaml::Media::VisualTreeHelper::GetChildrenCount(parent);
-            for (int i = 0; i < childrenCount; ++i) {
-                auto child = winrt::Microsoft::UI::Xaml::Media::VisualTreeHelper::GetChild(parent, i);
-                auto result = FindScrollViewer(child);
-                if (result) break;
-            }
-            if (!m_listScrollViewer) return false;
-        }
-        return true;
-    }
-
-    void FilePage::AddPreviousItem() {
-        // 简单判断根目录
-        if (currentDirectory.size() <= 3) return;
-        if (m_fileList.Size() > 0 && m_fileList.GetAt(0).Flag() == 999) return;
-        auto previousPage = winrt::make<winrt::StarlightGUI::implementation::FileInfo>();
-        previousPage.Name(L"上个文件夹");
-        previousPage.Flag(999);
-        GetFileIconAsync(previousPage);
-        m_fileList.InsertAt(0, previousPage);
-    }
-
     void FilePage::ResetState() {
         m_fileList.Clear();
-        m_loadedCount = 0;
-        m_isLoadingMore = false;
-        m_hasMoreFiles = true;
     }
 
     winrt::Windows::Foundation::IAsyncAction FilePage::WaitAndReloadAsync(int interval) {
@@ -690,3 +838,4 @@ namespace winrt::StarlightGUI::implementation
         }
     }
 }
+

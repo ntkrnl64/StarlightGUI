@@ -39,7 +39,6 @@ namespace winrt::StarlightGUI::implementation
         InitializeComponent();
 
         HandleListView().ItemsSource(m_handleList);
-        if (!list_animation) HandleListView().ItemContainerTransitions().Clear();
 
         this->Loaded([this](auto&&, auto&&) {
             LoadHandleList();
@@ -91,12 +90,8 @@ namespace winrt::StarlightGUI::implementation
         winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
         winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
     {
-        if (args.InRecycleQueue())
-            return;
+        slg::ApplyListRevealFocusTag(sender, args);
 
-        // 将 Tag 设到容器上，便于 ListViewItemPresenter 通过 TemplatedParent 绑定
-        if (auto itemContainer = args.ItemContainer())
-            itemContainer.Tag(sender.Tag());
     }
 
     winrt::Windows::Foundation::IAsyncAction Process_HandlePage::LoadHandleList()
@@ -147,3 +142,5 @@ namespace winrt::StarlightGUI::implementation
         LOG_INFO(__WFUNCTION__, L"Loaded handle list, %d entry(s) in total.", m_handleList.Size());
     }
 }
+
+
