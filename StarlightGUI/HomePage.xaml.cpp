@@ -180,7 +180,7 @@ namespace winrt::StarlightGUI::implementation
                 * 因为太唐了受不了了 为什么说的话都那么逆天
                 */
                 Uri uri(L"https://v1.hitokoto.cn/?c=d&c=e&c=i&c=j&c=k");
-                auto result = co_await client.GetStringAsync(uri);
+                hstring result = co_await client.GetStringAsync(uri);
 
                 // 读取 json 内容
                 auto json = Windows::Data::Json::JsonObject::Parse(result);

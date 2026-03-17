@@ -19,12 +19,7 @@ namespace winrt::StarlightGUI::implementation
     SettingsPage::SettingsPage()
     {
         InitializeComponent();
-
-        loaded = false;
-
         InitializeOptions();
-
-        loaded = true;
     }
 
     void SettingsPage::InitializeOptions() {
@@ -96,11 +91,12 @@ namespace winrt::StarlightGUI::implementation
 
         ImagePathText().Text(to_hstring(background_image));
         ImageOpacitySlider().Value(image_opacity);
+		DisasmCountSlider().Value(disasm_count);
     }
 
     void SettingsPage::EnumFileModeComboBox_SelectionChanged(IInspectable const& sender, SelectionChangedEventArgs const& e)
     {
-        if (!loaded) return;
+        if (!IsLoaded()) return;
         if (slg::CheckIllegalComboBoxAction(sender, e)) return;
 
         if (EnumFileModeComboBox().SelectedIndex() == 1)
@@ -130,7 +126,7 @@ namespace winrt::StarlightGUI::implementation
 
     void SettingsPage::BackgroundComboBox_SelectionChanged(IInspectable const& sender, SelectionChangedEventArgs const& e)
     {
-        if (!loaded) return;
+        if (!IsLoaded()) return;
         if (slg::CheckIllegalComboBoxAction(sender, e)) return;
 
         if (BackgroundComboBox().SelectedIndex() == 1)
@@ -154,7 +150,7 @@ namespace winrt::StarlightGUI::implementation
 
     void SettingsPage::MicaTypeComboBox_SelectionChanged(IInspectable const& sender, SelectionChangedEventArgs const& e)
     {
-        if (!loaded) return;
+        if (!IsLoaded()) return;
         if (slg::CheckIllegalComboBoxAction(sender, e)) return;
 
         if (MicaTypeComboBox().SelectedIndex() == 0)
@@ -173,7 +169,7 @@ namespace winrt::StarlightGUI::implementation
 
     void SettingsPage::AcrylicTypeComboBox_SelectionChanged(IInspectable const& sender, SelectionChangedEventArgs const& e)
     {
-        if (!loaded) return;
+        if (!IsLoaded()) return;
         if (slg::CheckIllegalComboBoxAction(sender, e)) return;
 
         if (AcrylicTypeComboBox().SelectedIndex() == 1)
@@ -196,7 +192,7 @@ namespace winrt::StarlightGUI::implementation
     
     void SettingsPage::NavigationComboBox_SelectionChanged(IInspectable const& sender, SelectionChangedEventArgs const& e)
     {
-        if (!loaded) return;
+        if (!IsLoaded()) return;
         if (slg::CheckIllegalComboBoxAction(sender, e)) return;
 
         if (NavigationComboBox().SelectedIndex() == 1)
@@ -274,13 +270,12 @@ namespace winrt::StarlightGUI::implementation
 
 
     void SettingsPage::RefreshOpacityButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e) {
-        SaveConfig("image_opacity", ImageOpacitySlider().Value());
         g_mainWindowInstance->LoadBackground();
     }
 
     void SettingsPage::ImageStretchComboBox_SelectionChanged(IInspectable const& sender, SelectionChangedEventArgs const& e)
     {
-        if (!loaded) return;
+        if (!IsLoaded()) return;
         if (slg::CheckIllegalComboBoxAction(sender, e)) return;
 
         if (ImageStretchComboBox().SelectedIndex() == 0)
@@ -314,4 +309,15 @@ namespace winrt::StarlightGUI::implementation
         DriverUtils::FixServices();
     }
 
+    void SettingsPage::ImageOpacitySlider_ValueChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& e)
+    {
+        if (!IsLoaded()) return;
+        SaveConfig("image_opacity", ImageOpacitySlider().Value());
+    }
+
+    void SettingsPage::DisasmCountSlider_ValueChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs const& e)
+    {
+        if (!IsLoaded()) return;
+        SaveConfig("disasm_count", DisasmCountSlider().Value());
+    }
 }

@@ -12,6 +12,7 @@
 #pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "nvidia/nvml.lib")
+#pragma comment(lib, "capstone/capstone.lib")
 
 // 取消定义 GetCurrentTime 宏，避免与 Storyboard::GetCurrentTime 冲突
 #undef GetCurrentTime
@@ -27,10 +28,8 @@
 #define LOGGER_TOGGLE()			Console::GetInstance().ToggleConsole()
 #define LOGGER_OPEN()			Console::GetInstance().OpenConsole()
 #define LOGGER_CLOSE()			Console::GetInstance().CloseConsole()
-#define LOGGER_SHUTDOWN()		Console::GetInstance().ShutdownConsole()
+#define LOGGER_SHUTDOWN()		Console::GetInstance().Shutdown()
 #define LOGGER_CLEAR()			Console::GetInstance().ClearConsole()
-#define LOGGER_SET_TITLE(title) Console::GetInstance().SetTitle(title)
-#define LOGGER_SET_LEVEL(level) Console::GetInstance().SetMinLogLevel(level)
 
 #include <Unknwn.h>
 #include <winrt/Windows.Foundation.h>
@@ -85,4 +84,4 @@ extern std::wstring unused;
 extern std::string enum_file_mode, background_type, mica_type, acrylic_type, navigation_style, background_image, image_stretch;
 extern bool enum_strengthen, pdh_first, list_animation, dangerous_confirm, check_update;
 extern bool hypervisor_mode;
-extern double image_opacity;
+extern int image_opacity, disasm_count;

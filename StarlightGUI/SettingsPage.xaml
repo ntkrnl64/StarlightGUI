@@ -79,6 +79,29 @@
                         Toggled="PDHFirstButton_Toggled" />
                 </essential:SettingsCard>
 
+                <essential:SettingsCard
+                    Margin="0,0,0,10"
+                    essential:RevealFocusPanel.AttachToPanel="{x:Bind RevealFocusPanel}"
+                    Description="在内存反汇编页面每一行展示的数据数量，请根据窗口大小设置，否则可能排版不整齐"
+                    Header="内存每行展示数量"
+                    IsActionIconVisible="False"
+                    IsClickEnabled="True">
+                    <essential:SettingsCard.HeaderIcon>
+                        <FontIcon
+                            FontFamily="Segoe Fluent Icons"
+                            FontSize="16"
+                            Glyph="&#xe8e3;" />
+                    </essential:SettingsCard.HeaderIcon>
+                    <Slider
+                        x:Name="DisasmCountSlider"
+                        Width="300"
+                        Margin="0,0,10,0"
+                        Maximum="100"
+                        Minimum="0"
+                        ValueChanged="DisasmCountSlider_ValueChanged"
+                        Value="16" />
+                </essential:SettingsCard>
+
                 <TextBlock
                     Padding="10"
                     HorizontalAlignment="Left"
@@ -199,6 +222,7 @@
                                     Margin="0,0,10,0"
                                     Maximum="100"
                                     Minimum="0"
+                                    ValueChanged="ImageOpacitySlider_ValueChanged"
                                     Value="20" />
                                 <Button Click="RefreshOpacityButton_Click" Content="刷新" />
                             </StackPanel>

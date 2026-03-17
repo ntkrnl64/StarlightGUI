@@ -69,6 +69,9 @@
     <Page Include="DeuteriumPage.xaml">
       <Filter>Pages</Filter>
     </Page>
+    <Page Include="DisasmPage.xaml">
+      <Filter>Pages</Filter>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Midl Include="MainWindow.idl" />
@@ -283,9 +286,6 @@
     <Filter Include="Utils\Elements">
       <UniqueIdentifier>{c581fe4b-97e8-4bc6-ba36-991d8c2d2052}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Animations">
-      <UniqueIdentifier>{d224c9e4-77b2-4e05-92aa-3bea658d3835}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="app.manifest" />
@@ -309,6 +309,9 @@
       <Filter>Assets</Filter>
     </None>
     <None Include="WindowTopMost.dll">
+      <Filter>Assets</Filter>
+    </None>
+    <None Include="capstone.dll">
       <Filter>Assets</Filter>
     </None>
   </ItemGroup>

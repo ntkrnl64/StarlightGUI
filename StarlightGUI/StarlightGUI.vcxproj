@@ -185,6 +185,10 @@
       <DependentUpon>DeuteriumPage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </ClInclude>
+    <ClInclude Include="DisasmPage.xaml.h">
+      <DependentUpon>DisasmPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </ClInclude>
     <ClInclude Include="FilePage.xaml.h">
       <DependentUpon>FilePage.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -301,6 +305,9 @@
     <Page Include="DeuteriumPage.xaml">
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="DisasmPage.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="FilePage.xaml">
       <SubType>Designer</SubType>
     </Page>
@@ -371,6 +378,10 @@
     </ClCompile>
     <ClCompile Include="DeuteriumPage.xaml.cpp">
       <DependentUpon>DeuteriumPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </ClCompile>
+    <ClCompile Include="DisasmPage.xaml.cpp">
+      <DependentUpon>DisasmPage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </ClCompile>
     <ClCompile Include="FilePage.xaml.cpp">
@@ -489,6 +500,10 @@
     </Midl>
     <Midl Include="DeuteriumPage.idl">
       <DependentUpon>DeuteriumPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Midl>
+    <Midl Include="DisasmPage.idl">
+      <DependentUpon>DisasmPage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Midl>
     <Midl Include="FilePage.idl">
@@ -619,6 +634,10 @@
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+    </None>
+    <None Include="capstone.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
     </None>

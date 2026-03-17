@@ -150,6 +150,10 @@ namespace winrt::StarlightGUI::implementation
             MainFrame().Navigate(xaml_typename<StarlightGUI::MonitorPage>());
             RootNavigation().SelectedItem(RootNavigation().MenuItems().GetAt(6));
         }
+        else if (invokedItem == L"Disasm") {
+            MainFrame().Navigate(xaml_typename<StarlightGUI::DisasmPage>());
+            RootNavigation().SelectedItem(RootNavigation().MenuItems().GetAt(7));
+        }
         else if (invokedItem == L"Deuterium") {
             MainFrame().Navigate(xaml_typename<StarlightGUI::DeuteriumPage>());
             RootNavigation().SelectedItem(RootNavigation().FooterMenuItems().GetAt(0));

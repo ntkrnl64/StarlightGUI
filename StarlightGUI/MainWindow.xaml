@@ -120,6 +120,11 @@
                             <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xea8f;" />
                         </NavigationViewItem.Icon>
                     </NavigationViewItem>
+                    <NavigationViewItem Content="内存反汇编" Tag="Disasm">
+                        <NavigationViewItem.Icon>
+                            <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xe943;" />
+                        </NavigationViewItem.Icon>
+                    </NavigationViewItem>
                 </NavigationView.MenuItems>
 
                 <!--  从上到下  -->

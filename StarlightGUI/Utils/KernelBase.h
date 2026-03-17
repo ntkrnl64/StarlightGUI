@@ -113,6 +113,10 @@ namespace winrt::StarlightGUI::implementation {
 		static BOOL DeuteriumAlloc(DEUTERIUM_PROXY_ALLOCATE& function, bool map) noexcept;
 		static BOOL DeuteriumFree(DEUTERIUM_PROXY_FREE& function, bool map) noexcept;
 
+		// Memory
+		static BOOL ReadMemory(std::vector<BYTE>& data, PVOID address, ULONG size) noexcept;
+		static BOOL WriteMemory(PVOID address, PVOID data, ULONG size) noexcept;
+
 	private:
 		static BOOL GetDriverDevice() noexcept;
 		static BOOL GetDriverDevice2() noexcept;

@@ -2193,6 +2193,60 @@ namespace winrt::StarlightGUI::implementation {
 		return status;
 	}
 
+	BOOL KernelInstance::ReadMemory(std::vector<BYTE>& data, PVOID address, ULONG size) noexcept {
+		if (!GetDriverDevice()) return FALSE;
+
+		struct CHECK_INPUT
+		{
+			ULONG Size;
+			PVOID Address;
+		};
+		CHECK_INPUT check_input = { 0 };
+		check_input.Address = address;
+		check_input.Size = size;
+
+		BOOL status = DeviceIoControl(driverDevice, IOCTL_READ_MEMORY_CHECK, &check_input, sizeof(CHECK_INPUT), 0, 0, 0, NULL);
+
+		if (!status) return FALSE;
+		
+		struct READ_INPUT
+		{
+			ULONG64 Size;
+			PBYTE Data;
+		};
+		READ_INPUT read_input = { 0 };
+		read_input.Data = new BYTE[size]();
+		read_input.Size = size;
+
+		status = DeviceIoControl(driverDevice, IOCTL_READ_MEMORY, &read_input, sizeof(READ_INPUT), &read_input, sizeof(READ_INPUT), 0, NULL);
+
+		if (status) {
+			data.assign(read_input.Data, read_input.Data + read_input.Size);
+		}
+		delete[] read_input.Data;
+
+		return status && !data.empty();
+	}
+
+	BOOL KernelInstance::WriteMemory(PVOID address, PVOID data, ULONG size) noexcept {
+		if (!GetDriverDevice()) return FALSE;
+
+		struct INPUT
+		{
+			PVOID Address;
+			PVOID Data;
+			SIZE_T Size;
+		};
+		INPUT input = { 0 };
+		input.Address = address;
+		input.Size = size;
+		input.Data = data;
+
+		BOOL status = DeviceIoControl(driverDevice, IOCTL_WRITE_MEMORY, &input, sizeof(INPUT), 0, 0, 0, NULL);
+
+		return status;
+	}
+
 	// =================================
 	//				PRIVATE
 	// =================================

@@ -17,5 +17,6 @@ namespace winrt::StarlightGUI::implementation {
         background_image = ReadConfig("background_image", "");
         image_opacity = ReadConfig("image_opacity", 20);
         image_stretch = ReadConfig("image_stretch", "UniformToFill");
+		disasm_count = ReadConfig("disasm_count", 16);
     }
 }
