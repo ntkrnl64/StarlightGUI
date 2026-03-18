@@ -183,7 +183,7 @@ namespace winrt::StarlightGUI::implementation {
 		return DeviceIoControl(driverDevice, IOCTL_HIDE_DRIVER, &in, sizeof(in), 0, 0, 0, NULL);
 	}
 
-	BOOL KernelInstance::EnumProcesses(std::unordered_map<DWORD, int> processMap, std::vector<winrt::StarlightGUI::ProcessInfo>& targetList) noexcept {
+	BOOL KernelInstance::EnumProcesses(std::vector<winrt::StarlightGUI::ProcessInfo>& targetList) noexcept {
 		if (!GetDriverDevice2()) return FALSE;
 
 		BOOL bRet = FALSE;
@@ -191,7 +191,7 @@ namespace winrt::StarlightGUI::implementation {
 
 		PPROCESS_DATA pProcessInfo = NULL;
 
-		input.BufferSize = sizeof(PROCESS_DATA) * (targetList.size() + 100);
+		input.BufferSize = sizeof(PROCESS_DATA) * 500;
 		input.Buffer = (PVOID)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, input.BufferSize);
 		input.ProcessCount = 0;
 
@@ -206,46 +206,22 @@ namespace winrt::StarlightGUI::implementation {
 			for (ULONG i = 0; i < input.ProcessCount; i++)
 			{
 				PROCESS_DATA data = pProcessInfo[i];
-				if (data.Pid != 0)
-				{
-					auto it = processMap.find((DWORD)data.Pid);
-					if (it != processMap.end()) {
-						winrt::StarlightGUI::ProcessInfo pi = targetList.at(it->second);
-						pi.EProcess(ULongToHexString((ULONG64)data.Eprocess));
-						pi.EProcessULong((ULONG64)data.Eprocess);
-						pi.MemoryUsageByte(data.WorkingSetPrivateSize);
-					}
-					else {
-						auto pi = winrt::make<winrt::StarlightGUI::implementation::ProcessInfo>();
-						pi.Id(data.Pid);
-						pi.Name(to_hstring(data.ImageName));
-						pi.EProcess(ULongToHexString((ULONG64)data.Eprocess));
-						pi.EProcessULong((ULONG64)data.Eprocess);
-						pi.Description(L"应用程序");
-						pi.ExecutablePath(to_hstring(data.ImagePath));
-						pi.MemoryUsageByte(data.WorkingSetPrivateSize);
-						targetList.push_back(pi);
-					}
-				}
-				else if (data.Pid == 0) {
-					auto pi = winrt::make<winrt::StarlightGUI::implementation::ProcessInfo>();
-					pi.Id(data.Pid);
-					pi.Name(to_hstring(data.ImageName));
-					pi.Description(L"系统");
-					pi.ExecutablePath(to_hstring(data.ImagePath));
-					pi.EProcess(ULongToHexString(data.Eprocess));
-					pi.EProcessULong((ULONG64)data.Eprocess);
-					pi.Status(L"系统");
-					pi.MemoryUsageByte(data.WorkingSetPrivateSize);
-					targetList.push_back(pi);
-				}
+				auto pi = winrt::make<winrt::StarlightGUI::implementation::ProcessInfo>();
+				pi.Id(data.Pid);
+				pi.Name(to_hstring(data.ImageName));
+				pi.EProcess(ULongToHexString((ULONG64)data.Eprocess));
+				pi.EProcessULong((ULONG64)data.Eprocess);
+				pi.ExecutablePath(to_hstring(data.ImagePath));
+				pi.MemoryUsageByte(data.WorkingSetPrivateSize);
+				pi.Status(L"运行中");
+				targetList.push_back(pi);
 			}
 		}
 		bRet = HeapFree(GetProcessHeap(), 0, input.Buffer);
 		return status && bRet;
 	}
 
-	BOOL KernelInstance::EnumProcesses2(std::unordered_map<DWORD, int> processMap, std::vector<winrt::StarlightGUI::ProcessInfo>& targetList) noexcept {
+	BOOL KernelInstance::EnumProcesses2(std::vector<winrt::StarlightGUI::ProcessInfo>& targetList) noexcept {
 		if (!GetDriverDevice()) return FALSE;
 		struct INPUT
 		{
@@ -256,7 +232,7 @@ namespace winrt::StarlightGUI::implementation {
 		INPUT input = { 0 };
 		PDATA_INFO pProcessInfo = NULL;
 
-		input.nSize = sizeof(DATA_INFO) * (targetList.size() + 100);
+		input.nSize = sizeof(DATA_INFO) * 500;
 		input.ProcessInfo = (PVOID)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, input.nSize);
 
 		BOOL status;
@@ -271,36 +247,14 @@ namespace winrt::StarlightGUI::implementation {
 			for (ULONG i = 0; i < nRet; i++)
 			{
 				DATA_INFO data = pProcessInfo[i];
-				if (data.ulongdata1 != 0)
-				{
-					auto it = processMap.find((DWORD)data.ulongdata1);
-					if (it != processMap.end()) {
-						winrt::StarlightGUI::ProcessInfo pi = targetList.at(it->second);
-						pi.EProcess(ULongToHexString((ULONG64)data.pvoidaddressdata1));
-						pi.EProcessULong((ULONG64)data.pvoidaddressdata1);
-					}
-					else {
-						auto pi = winrt::make<winrt::StarlightGUI::implementation::ProcessInfo>();
-						pi.Id(data.ulongdata1);
-						pi.Name(to_hstring(data.Module));
-						pi.EProcess(ULongToHexString((ULONG64)data.pvoidaddressdata1));
-						pi.EProcessULong((ULONG64)data.pvoidaddressdata1);
-						pi.Description(L"应用程序");
-						pi.ExecutablePath(to_hstring(data.Module1));
-						targetList.push_back(pi);
-					}
-				}
-				else if (data.ulongdata1 == 0) {
-					auto pi = winrt::make<winrt::StarlightGUI::implementation::ProcessInfo>();
-					pi.Id(data.ulongdata1);
-					pi.Name(to_hstring(data.Module));
-					pi.Description(L"系统");
-					pi.ExecutablePath(to_hstring(data.Module1));
-					pi.EProcess(ULongToHexString((ULONG64)data.pvoidaddressdata1));
-					pi.EProcessULong((ULONG64)data.pvoidaddressdata1);
-					pi.Status(L"系统");
-					targetList.push_back(pi);
-				}
+				auto pi = winrt::make<winrt::StarlightGUI::implementation::ProcessInfo>();
+				pi.Id(data.ulongdata1);
+				pi.Name(to_hstring(data.Module));
+				pi.EProcess(ULongToHexString((ULONG64)data.pvoidaddressdata1));
+				pi.EProcessULong((ULONG64)data.pvoidaddressdata1);
+				pi.ExecutablePath(to_hstring(data.Module1));
+				pi.Status(L"运行中");
+				targetList.push_back(pi);
 			}
 		}
 		status = HeapFree(GetProcessHeap(), 0, input.ProcessInfo);
@@ -816,11 +770,9 @@ namespace winrt::StarlightGUI::implementation {
 		};
 
 		WCHAR fromPath[MAX_PATH];
-		wcscpy_s(fromPath, L"\\??\\");
-		wcscat_s(fromPath, from.c_str());
+		wcscpy_s(fromPath, from.c_str());
 		WCHAR toPath[MAX_PATH];
-		wcscpy_s(toPath, L"\\??\\");
-		wcscat_s(toPath, to.c_str());
+		wcscpy_s(toPath, to.c_str());
 
 		INPUT input = { 0 };
 		RtlInitUnicodeString(input.FilePath, fromPath);
@@ -828,7 +780,24 @@ namespace winrt::StarlightGUI::implementation {
 		RtlInitUnicodeString(input.TargetFilePath, toPath);
 
         LOG_WARNING(L"KernelInstance", L"Calling 0x%x from \"%s\"", IOCTL_NTFS_COPY_FILE, __WFUNCTION__.c_str());
-		return DeviceIoControl(driverDevice, IOCTL_NTFS_COPY_FILE, &input, sizeof(INPUT), NULL, sizeof(ULONG), 0, 0);
+		return DeviceIoControl(driverDevice, IOCTL_NTFS_COPY_FILE, &input, sizeof(INPUT), NULL, 0, NULL, 0);
+	}
+
+	BOOL KernelInstance::_RenameFile(std::wstring from, std::wstring to) noexcept {
+		if (!GetDriverDevice()) return FALSE;
+
+		struct INPUT
+		{
+			UNICODE_STRING FilePath[MAX_PATH];
+			UNICODE_STRING TargetName[MAX_PATH];
+		};
+
+		INPUT input = { 0 };
+		RtlInitUnicodeString(input.FilePath, from.c_str());
+		RtlInitUnicodeString(input.TargetName, to.c_str());
+
+		LOG_WARNING(L"KernelInstance", L"Calling 0x%x from \"%s\"", IOCTL_IRP_RENAME_FILE, __WFUNCTION__.c_str());
+		return DeviceIoControl(driverDevice, IOCTL_IRP_RENAME_FILE, &input, sizeof(INPUT), NULL, 0, NULL, 0);
 	}
 
 	BOOL KernelInstance::EnableHVM() noexcept {

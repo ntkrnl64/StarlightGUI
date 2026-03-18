@@ -37,6 +37,8 @@ namespace winrt::StarlightGUI::implementation {
 
     std::wstring ExtractFileName(const std::wstring& path);
 
+    std::wstring GetExecutablePath();
+
     std::wstring GetInstalledLocationPath();
 
     std::wstring GetStacktrace(UINT length);
@@ -44,4 +46,8 @@ namespace winrt::StarlightGUI::implementation {
     double GetValueFromCounter(PDH_HCOUNTER& counter);
 
     double GetValueFromCounterArray(PDH_HCOUNTER& counter);
+
+    bool EnablePrivilege(LPCTSTR privilege);
+
+    DWORD FindProcessId(const wchar_t* processName);
 }

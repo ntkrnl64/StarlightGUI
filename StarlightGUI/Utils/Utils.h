@@ -17,7 +17,7 @@ using namespace Microsoft::UI::Xaml::Controls;
 using namespace Microsoft::UI::Xaml::Media::Imaging;
 using namespace Microsoft::UI::Xaml::Media::Animation;
 
-extern bool list_animation;
+extern bool list_revealfocus;
 
 namespace slg {
     struct coroutine {
@@ -132,7 +132,7 @@ namespace slg {
 
         if (auto itemContainer = args.ItemContainer())
         {
-            if (list_animation) itemContainer.Tag(sender.Tag());
+            if (list_revealfocus) itemContainer.Tag(sender.Tag());
             else itemContainer.ClearValue(winrt::Microsoft::UI::Xaml::FrameworkElement::TagProperty());
         }
     }

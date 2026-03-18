@@ -72,16 +72,16 @@
 #include <Utils/GeneralEntry.h>
 
 #include <Utils/TaskUtils.h>
+#include <Utils/CppUtils.h>
 #include <Utils/Utils.h>
 #include <Utils/KernelBase.h>
 #include <Utils/Elevator.h>
 #include <Utils/Config.h>
-#include <Utils/CppUtils.h>
 
 
 extern winrt::hstring kernelPath, astralPath, wtmPath, iamKeyHackerPath;
 extern std::wstring unused;
 extern std::string enum_file_mode, background_type, mica_type, acrylic_type, navigation_style, background_image, image_stretch;
-extern bool enum_strengthen, pdh_first, list_animation, dangerous_confirm, check_update;
+extern bool enum_strengthen, pdh_first, list_revealfocus, elevated_run, dangerous_confirm, check_update;
 extern bool hypervisor_mode;
 extern int image_opacity, disasm_count;

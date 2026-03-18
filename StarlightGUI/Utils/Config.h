@@ -16,14 +16,9 @@ namespace winrt::StarlightGUI::implementation {
 
     template<typename T>
     void SaveConfig(std::string key, T s_value) {
-        static char* value = NULL;
-        size_t len = 0;
         try
         {
-            // 获取用户文件夹路径
-            if (value == NULL) _dupenv_s(&value, &len, "USERPROFILE");
-
-            auto userFolder = fs::path(value);
+            auto userFolder = fs::path(GetInstalledLocationPath());
             auto configFilePath = userFolder / "StarlightGUI.json";
             json configData;
 
@@ -46,14 +41,9 @@ namespace winrt::StarlightGUI::implementation {
 
     template<typename T>
     auto ReadConfig(std::string key, T defaultValue) {
-        static char* value = NULL;
-        size_t len = 0;
         try
         {
-            // 获取用户文件夹路径
-            if (value == NULL) _dupenv_s(&value, &len, "USERPROFILE");
-
-            auto userFolder = fs::path(value);
+            auto userFolder = fs::path(GetInstalledLocationPath());
             auto configFilePath = userFolder / "StarlightGUI.json";
 
             if (fs::exists(configFilePath))

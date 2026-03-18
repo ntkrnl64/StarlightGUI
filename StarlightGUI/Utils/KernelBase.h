@@ -37,8 +37,8 @@ namespace winrt::StarlightGUI::implementation {
 		static BOOL HideDriver(ULONG64 driverObj) noexcept;
 
 		// Enum
-		static BOOL EnumProcesses(std::unordered_map<DWORD, int> processMap, std::vector<winrt::StarlightGUI::ProcessInfo>& targetList) noexcept;
-		static BOOL EnumProcesses2(std::unordered_map<DWORD, int> processMap, std::vector<winrt::StarlightGUI::ProcessInfo>& targetList) noexcept;
+		static BOOL EnumProcesses(std::vector<winrt::StarlightGUI::ProcessInfo>& targetList) noexcept;
+		static BOOL EnumProcesses2(std::vector<winrt::StarlightGUI::ProcessInfo>& targetList) noexcept;
 		static BOOL EnumProcessThreads(ULONG64 eprocess, std::vector<winrt::StarlightGUI::ThreadInfo>& threads) noexcept;
 		static BOOL EnumProcessHandles(ULONG pid, std::vector<winrt::StarlightGUI::HandleInfo>& handles) noexcept;
 		static BOOL EnumProcessModules(ULONG64 eprocess, std::vector<winrt::StarlightGUI::MokuaiInfo>& threads) noexcept;
@@ -74,6 +74,7 @@ namespace winrt::StarlightGUI::implementation {
 		static BOOL MurderFileAuto(std::wstring path) noexcept;
 		static BOOL LockFile(std::wstring path) noexcept;
 		static BOOL _CopyFile(std::wstring from, std::wstring to, std::wstring name) noexcept;
+		static BOOL _RenameFile(std::wstring from, std::wstring to) noexcept;
 
 		// System
 		static BOOL EnableHVM() noexcept;

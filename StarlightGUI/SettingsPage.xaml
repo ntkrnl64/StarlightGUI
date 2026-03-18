@@ -82,6 +82,25 @@
                 <essential:SettingsCard
                     Margin="0,0,0,10"
                     essential:RevealFocusPanel.AttachToPanel="{x:Bind RevealFocusPanel}"
+                    Description="以 TrustedInstaller 权限运行 Starlight GUI"
+                    Header="高权限运行"
+                    IsActionIconVisible="False"
+                    IsClickEnabled="True">
+                    <essential:SettingsCard.HeaderIcon>
+                        <FontIcon
+                            FontFamily="Segoe Fluent Icons"
+                            FontSize="16"
+                            Glyph="&#xe7ef;" />
+                    </essential:SettingsCard.HeaderIcon>
+                    <ToggleSwitch
+                        x:Name="ElevatedRunButton"
+                        Margin="0,0,-80,0"
+                        Toggled="ElevatedRunButton_Toggled" />
+                </essential:SettingsCard>
+
+                <essential:SettingsCard
+                    Margin="0,0,0,10"
+                    essential:RevealFocusPanel.AttachToPanel="{x:Bind RevealFocusPanel}"
                     Description="在内存反汇编页面每一行展示的数据数量，请根据窗口大小设置，否则可能排版不整齐"
                     Header="内存每行展示数量"
                     IsActionIconVisible="False"
@@ -269,9 +288,9 @@
                             Glyph="&#xeb9d;" />
                     </essential:SettingsCard.HeaderIcon>
                     <ToggleSwitch
-                        x:Name="ListAnimationButton"
+                        x:Name="ListRevealFocusButton"
                         Margin="0,0,-80,0"
-                        Toggled="ListAnimationButton_Toggled" />
+                        Toggled="ListRevealFocusButton_Toggled" />
                 </essential:SettingsCard>
 
                 <TextBlock

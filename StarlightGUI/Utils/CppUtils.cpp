@@ -305,10 +305,14 @@ namespace winrt::StarlightGUI::implementation {
         }
     }
 
-    std::wstring GetInstalledLocationPath() {
+    std::wstring GetExecutablePath() {
         wchar_t exePath[MAX_PATH];
         GetModuleFileNameW(NULL, exePath, MAX_PATH);
-        return fs::path(exePath).parent_path().wstring();
+        return exePath;
+    }
+
+    std::wstring GetInstalledLocationPath() {
+        return fs::path(GetExecutablePath()).parent_path().wstring();
     }
 
     std::wstring GetStacktrace(UINT length)
@@ -354,5 +358,44 @@ namespace winrt::StarlightGUI::implementation {
         }
 
         return result;
+    }
+
+    bool EnablePrivilege(LPCTSTR privilege) {
+        HANDLE hToken;
+        TOKEN_PRIVILEGES tkp{};
+
+        if (!OpenProcessToken(GetCurrentProcess(),
+            TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken)) {
+            return false;
+        }
+
+        LookupPrivilegeValueW(NULL, privilege, &tkp.Privileges[0].Luid);
+
+        tkp.PrivilegeCount = 1;
+        tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+        BOOL result = AdjustTokenPrivileges(hToken, FALSE, &tkp, 0, NULL, 0);
+        CloseHandle(hToken);
+
+        return result != FALSE;
+    }
+
+    DWORD FindProcessId(const wchar_t* processName) {
+        HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if (hSnapshot == INVALID_HANDLE_VALUE) return 0;
+
+        PROCESSENTRY32W pe = { sizeof(pe) };
+
+        if (Process32FirstW(hSnapshot, &pe)) {
+            do {
+                if (_wcsicmp(pe.szExeFile, processName) == 0) {
+                    CloseHandle(hSnapshot);
+                    return pe.th32ProcessID;
+                }
+            } while (Process32NextW(hSnapshot, &pe));
+        }
+
+        CloseHandle(hSnapshot);
+        return 0;
     }
 }

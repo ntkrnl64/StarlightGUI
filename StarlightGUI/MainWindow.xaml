@@ -53,8 +53,7 @@
                     <TextBlock
                         Margin="4,0,0,0"
                         VerticalAlignment="Center"
-                        FontSize="14"
-                        FontStyle="Italic"
+                        FontSize="13"
                         Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
                         Text="{StaticResource Version}" />
                 </StackPanel>

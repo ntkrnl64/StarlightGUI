@@ -16,7 +16,9 @@
 #include <winrt/Windows.Data.Json.h>
 #include <winrt/Microsoft.UI.Xaml.Media.Imaging.h>
 #include <commctrl.h>
+#include <shellapi.h>
 #include "UpdateDialog.xaml.h"
+#include "FilePage.xaml.h"
 
 using namespace winrt;
 using namespace WinUI3Package;
@@ -54,6 +56,13 @@ namespace winrt::StarlightGUI::implementation
         AppWindow().TitleBar().PreferredHeightOption(winrt::Microsoft::UI::Windowing::TitleBarHeightOption::Tall);
         AppWindow().SetIcon(GetInstalledLocationPath() + L"\\Assets\\Starlight.ico");
         SetWindowSubclass(hWnd, &MainWindowProc, 1, reinterpret_cast<DWORD_PTR>(this));
+
+        CHANGEFILTERSTRUCT cfs{};
+        cfs.cbSize = sizeof(cfs);
+        ChangeWindowMessageFilterEx(hWnd, WM_DROPFILES, MSGFLT_ALLOW, &cfs);
+        ChangeWindowMessageFilterEx(hWnd, WM_COPYDATA, MSGFLT_ALLOW, &cfs);
+        ChangeWindowMessageFilterEx(hWnd, 0x0049 /* WM_COPYGLOBALDATA */, MSGFLT_ALLOW, &cfs);
+        DragAcceptFiles(hWnd, TRUE);
 
         int32_t width = ReadConfig("window_width", 1200);
         int32_t height = ReadConfig("window_height", 800);
@@ -421,6 +430,33 @@ namespace winrt::StarlightGUI::implementation
 
         switch (uMsg)
         {
+        case WM_DROPFILES:
+        {
+            auto hDrop = reinterpret_cast<HDROP>(wParam);
+            if (!hDrop) return 0;
+
+            UINT fileCount = DragQueryFileW(hDrop, 0xFFFFFFFF, nullptr, 0);
+            std::vector<std::wstring> paths;
+            paths.reserve(fileCount);
+
+            for (UINT i = 0; i < fileCount; ++i) {
+                UINT len = DragQueryFileW(hDrop, i, nullptr, 0);
+                if (len == 0) continue;
+                std::wstring path(len + 1, L'\0');
+                DragQueryFileW(hDrop, i, path.data(), len + 1);
+                path.resize(len);
+                paths.push_back(path);
+            }
+
+            DragFinish(hDrop);
+
+            if (!paths.empty() && g_filePageInstance) {
+                g_filePageInstance->HandleExternalDropFiles(paths);
+            }
+
+            return 0;
+        }
+
         case WM_GETMINMAXINFO:
         {
             MINMAXINFO* pMinMaxInfo = reinterpret_cast<MINMAXINFO*>(lParam);

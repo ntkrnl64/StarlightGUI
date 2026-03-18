@@ -10,7 +10,8 @@ namespace winrt::StarlightGUI::implementation {
         background_type = ReadConfig("background_type", "Static");
         mica_type = ReadConfig("mica_type", "BaseAlt");
         acrylic_type = ReadConfig("acrylic_type", "Default");
-		list_animation = ReadConfig("list_animation", true);
+		list_revealfocus = ReadConfig("list_revealfocus", true);
+        elevated_run = ReadConfig("elevated_run", false);
         dangerous_confirm = ReadConfig("dangerous_confirm", true);
         check_update = ReadConfig("check_update", true);
         navigation_style = ReadConfig("navigation_style", "LeftCompact");

@@ -165,9 +165,12 @@
                     <essential:RevealFocusPanel x:Name="FileListViewRevealFocusPanel">
                         <ListView
                             x:Name="FileListView"
+                            AllowDrop="True"
                             Background="Transparent"
                             ContainerContentChanging="FileListView_ContainerContentChanging"
+                            DragOver="FileListView_DragOver"
                             DoubleTapped="FileListView_DoubleTapped"
+                            Drop="FileListView_Drop"
                             IsDoubleTapEnabled="True"
                             IsMultiSelectCheckBoxEnabled="True"
                             ItemContainerStyle="{StaticResource ListViewItemStyle}"

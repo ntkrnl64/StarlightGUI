@@ -2,7 +2,6 @@
 
 #include "TaskPage.g.h"
 #include <map>
-#include <TlHelp32.h>
 #include <winrt/Windows.Foundation.Collections.h>
 
 namespace winrt::StarlightGUI::implementation
@@ -29,15 +28,19 @@ namespace winrt::StarlightGUI::implementation
         bool ApplyFilter(const winrt::StarlightGUI::ProcessInfo& process, hstring& query);
 
         winrt::Windows::Foundation::IAsyncAction LoadProcessList();
+        winrt::Windows::Foundation::IAsyncAction LoadMetaForCurrentList(std::vector<winrt::StarlightGUI::ProcessInfo> processes, uint64_t loadToken);
         winrt::Windows::Foundation::IAsyncAction WaitAndReloadAsync(int interval);
-        winrt::Windows::Foundation::IAsyncAction GetProcessInfoAsync(const PROCESSENTRY32W& pe32, std::vector<winrt::StarlightGUI::ProcessInfo>& processes);
-        winrt::Windows::Foundation::IAsyncAction GetProcessIconAsync(const winrt::StarlightGUI::ProcessInfo& process);
+        winrt::Windows::Foundation::IAsyncAction GetProcessIconAsync(winrt::StarlightGUI::ProcessInfo process);
+        void UpdateRealizedItemIcon(winrt::StarlightGUI::ProcessInfo const& process, winrt::Microsoft::UI::Xaml::Media::ImageSource const& icon);
+        void UpdateRealizedItemDescription(winrt::StarlightGUI::ProcessInfo const& process, winrt::hstring const& description);
 
         winrt::Windows::Foundation::Collections::IObservableVector<winrt::StarlightGUI::ProcessInfo> m_processList{
             winrt::single_threaded_observable_vector<winrt::StarlightGUI::ProcessInfo>()
         };
 
         bool m_isLoadingProcesses = false;
+        bool m_isPostLoading = false;
+        uint64_t m_currentLoadToken = 0;
         winrt::Microsoft::UI::Xaml::DispatcherTimer reloadTimer;
 
         inline static bool m_isLoading = false;

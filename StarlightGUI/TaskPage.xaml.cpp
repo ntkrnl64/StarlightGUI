@@ -16,9 +16,7 @@
 #include <Psapi.h>
 #include <sstream>
 #include <iomanip>
-#include <mutex>
 #include <shellapi.h>
-#include <unordered_set>
 #include <InfoWindow.xaml.h>
 #include <MainWindow.xaml.h>
 #include <RunProcessDialog.xaml.h>
@@ -39,15 +37,30 @@ using namespace Windows::System;
 
 namespace winrt::StarlightGUI::implementation
 {
-    static std::unordered_map<hstring, std::optional<winrt::Microsoft::UI::Xaml::Media::ImageSource>> iconCache;
-    static std::unordered_map<hstring, hstring> descriptionCache;
-    static std::unordered_map<DWORD, int> processIndexMap;
+    static std::wstring NormalizeCacheKey(std::wstring value)
+    {
+        std::transform(value.begin(), value.end(), value.begin(), ::towlower);
+        return value;
+    }
+
+    template <typename T>
+    T FindVisualChild(winrt::Microsoft::UI::Xaml::DependencyObject const& parent)
+    {
+        if (!parent) return nullptr;
+
+        int count = winrt::Microsoft::UI::Xaml::Media::VisualTreeHelper::GetChildrenCount(parent);
+        for (int i = 0; i < count; ++i) {
+            auto child = winrt::Microsoft::UI::Xaml::Media::VisualTreeHelper::GetChild(parent, i);
+            if (auto typed = child.try_as<T>()) return typed;
+            if (auto nested = FindVisualChild<T>(child)) return nested;
+        }
+        return nullptr;
+    }
+
+    static std::unordered_map<std::wstring, winrt::Microsoft::UI::Xaml::Media::ImageSource> iconCache;
+    static std::unordered_map<std::wstring, winrt::hstring> descriptionCache;
     static HDC hdc{ nullptr };
-    static std::unordered_set<int> filteredPids;
-    static std::vector<winrt::StarlightGUI::ProcessInfo> fullRecordedProcesses;
-    static std::mutex safelock;
     static int safeAcceptedPID = -1;
-    static bool infoWindowOpen = false;
 
     TaskPage::TaskPage() {
         InitializeComponent();
@@ -362,6 +375,16 @@ namespace winrt::StarlightGUI::implementation
     {
         slg::ApplyListRevealFocusTag(sender, args);
 
+        if (args.InRecycleQueue()) return;
+
+        if (auto process = args.Item().try_as<winrt::StarlightGUI::ProcessInfo>()) {
+            if (process.Icon()) {
+                UpdateRealizedItemIcon(process, process.Icon());
+            }
+            else {
+                GetProcessIconAsync(process);
+            }
+        }
     }
 
     winrt::Windows::Foundation::IAsyncAction TaskPage::LoadProcessList()
@@ -369,6 +392,9 @@ namespace winrt::StarlightGUI::implementation
         if (m_isLoadingProcesses) {
             co_return;
         }
+
+        auto loadToken = ++m_currentLoadToken;
+        m_isPostLoading = false;
         m_isLoadingProcesses = true;
 
         LOG_INFO(__WFUNCTION__, L"Loading process list...");
@@ -386,74 +412,50 @@ namespace winrt::StarlightGUI::implementation
         co_await winrt::resume_background();
 
         std::vector<winrt::StarlightGUI::ProcessInfo> processes;
-        std::map<DWORD, hstring> processCpuTable;
+        std::vector<winrt::StarlightGUI::ProcessInfo> visibleProcesses;
 
         processes.reserve(200);
-
-        HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-        if (hSnapshot == INVALID_HANDLE_VALUE) {
-            co_await wil::resume_foreground(DispatcherQueue());
-            slg::CreateInfoBarAndDisplay(L"错误", L"无法获取进程快照", InfoBarSeverity::Error, g_mainWindowInstance);
-            co_return;
-        }
-
-        PROCESSENTRY32W pe32{};
-        pe32.dwSize = sizeof(PROCESSENTRY32W);
-
-        if (Process32FirstW(hSnapshot, &pe32)) {
-            do {
-                co_await GetProcessInfoAsync(pe32, processes);
-            } while (Process32NextW(hSnapshot, &pe32));
-        }
-
-        CloseHandle(hSnapshot);
-
-        LOG_INFO(__WFUNCTION__, L"Enumerated processes (user mode), %d entry(s).", processes.size());
-
-        processIndexMap.clear();
-        for (int i = 0; i < processes.size(); i++) {
-            auto& process = processes.at(i);
-            processIndexMap[process.Id()] = i;
-        }
+        visibleProcesses.reserve(200);
 
         // 对于 Windows 11，我们使用 AstralX 进行枚举
         // 对于 Windows 10 及以下版本，我们使用 SKT64 进行枚举
         if (TaskUtils::GetWindowsBuildNumber() >= 22000 && !enum_strengthen) {
-            KernelInstance::EnumProcesses(processIndexMap, processes);
+            KernelInstance::EnumProcesses(processes);
         }
         else {
-            KernelInstance::EnumProcesses2(processIndexMap, processes);
+            KernelInstance::EnumProcesses2(processes);
         }
 
-        LOG_INFO(__WFUNCTION__, L"Enumerated processes (kernel mode), %d entry(s).", processes.size());
-
-        fullRecordedProcesses = processes;
-
-        // 异步加载CPU使用率
-        co_await TaskUtils::FetchProcessCpuUsage(processCpuTable);
+        LOG_INFO(__WFUNCTION__, L"Enumerated processes, %d entry(s).", processes.size());
 
         co_await wil::resume_foreground(DispatcherQueue());
 
-        for (const auto& process : processes) {
+        for (auto& process : processes) {
             bool shouldRemove = query.empty() ? false : ApplyFilter(process, query);
             if (shouldRemove) continue;
 
-            // 从缓存加载图标，没有则获取
-            co_await GetProcessIconAsync(process);
+            if (process.Name() == L"Idle" || process.Name() == L"System" || process.Name() == L"Registry") {
+                process.Description(L"系统进程");
+            }
+            else {
+                std::wstring path = process.ExecutablePath().c_str();
+                if (!path.empty()) {
+                    auto key = NormalizeCacheKey(path);
 
-            // 加载CPU占用
-            if (processCpuTable.find((DWORD)process.Id()) != processCpuTable.end()) process.CpuUsage(processCpuTable[(DWORD)process.Id()]);
+                    auto descIt = descriptionCache.find(key);
+                    if (descIt != descriptionCache.end()) process.Description(descIt->second);
 
-            // 格式化内存占用
-            if (process.MemoryUsageByte() != 0) process.MemoryUsage(FormatMemorySize(process.MemoryUsageByte()));
-
-            if (process.CpuUsage().empty()) process.CpuUsage(L"-1 (未知)");
-            if (process.MemoryUsage().empty()) process.MemoryUsage(L"-1 (未知)");
-            if (process.Status().empty()) process.Status(L"运行中");
-            if (process.EProcess().empty()) process.EProcess(L"(未知)");
+                    auto iconIt = iconCache.find(key);
+                    if (iconIt != iconCache.end()) process.Icon(iconIt->second);
+                }
+            }
 
             m_processList.Append(process);
+            visibleProcesses.push_back(process);
         }
+
+        m_isPostLoading = true;
+        LoadMetaForCurrentList(visibleProcesses, loadToken);
 
         // 恢复排序
         ApplySort(currentSortingOption, currentSortingType);
@@ -471,132 +473,246 @@ namespace winrt::StarlightGUI::implementation
         m_isLoadingProcesses = false;
     }
 
-    winrt::Windows::Foundation::IAsyncAction TaskPage::GetProcessInfoAsync(const PROCESSENTRY32W& pe32, std::vector<winrt::StarlightGUI::ProcessInfo>& processes)
+    winrt::Windows::Foundation::IAsyncAction TaskPage::LoadMetaForCurrentList(std::vector<winrt::StarlightGUI::ProcessInfo> processes, uint64_t loadToken)
     {
-		// 跳过筛选的PID，在搜索时性能更好
-        std::lock_guard<std::mutex> lock(safelock);
-        if (filteredPids.find(pe32.th32ProcessID) != filteredPids.end()) {
-            co_return;
-		}
-        HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pe32.th32ProcessID);
-        if (hProcess) {
-            WCHAR processName[MAX_PATH] = L"";
-            DWORD size = MAX_PATH;
+        auto lifetime = get_strong();
 
-            if (QueryFullProcessImageNameW(hProcess, 0, processName, &size)) {
-                uint64_t memoryUsage = TaskUtils::GetProcessWorkingSet(hProcess);
-                if (memoryUsage == 0) {
-                    PROCESS_MEMORY_COUNTERS pmc{};
-                    if (K32GetProcessMemoryInfo(hProcess, &pmc, sizeof(pmc))) {
-                        memoryUsage = pmc.WorkingSetSize;
-                    }
-                }
+        struct DescriptionUpdate {
+            int32_t Pid{ 0 };
+            std::wstring CacheKey;
+            winrt::hstring Description{ L"应用程序" };
+        };
 
-				// 缓存描述信息
-                if (descriptionCache.find(processName) == descriptionCache.end()) {
-                    DWORD dummy;
-                    DWORD versionInfoSize = GetFileVersionInfoSizeW(processName, &dummy);
-                    std::wstring description = L"";
+        std::vector<DescriptionUpdate> descriptions;
+        descriptions.reserve(processes.size());
+        std::vector<winrt::StarlightGUI::ProcessInfo> missingDescriptionProcesses;
+        missingDescriptionProcesses.reserve(processes.size());
+        std::unordered_map<int32_t, winrt::hstring> descriptionTable;
 
-                    if (versionInfoSize > 0) {
-                        std::vector<BYTE> versionInfo(versionInfoSize);
-                        if (GetFileVersionInfoW(processName, 0, versionInfoSize, versionInfo.data())) {
-                            VS_FIXEDFILEINFO* fileInfo;
-                            UINT fileInfoSize;
+        std::map<DWORD, hstring> processCpuTable;
 
-                            if (VerQueryValueW(versionInfo.data(), L"\\", (LPVOID*)&fileInfo, &fileInfoSize)) {
-                                if (fileInfo->dwFileFlagsMask & VS_FF_INFOINFERRED) {
-                                }
-                            }
+        for (auto const& process : processes) {
+            if (!process) continue;
 
-                            wchar_t* fileDescription = nullptr;
-                            UINT descriptionSize;
-                            if (VerQueryValueW(versionInfo.data(), L"\\StringFileInfo\\040904b0\\FileDescription", (LPVOID*)&fileDescription, &descriptionSize) && fileDescription) {
-                                description = fileDescription;
-                            }
-                        }
-                    }
-
-                    if (description.empty()) {
-                        description = L"应用程序";
-                    }
-
-					descriptionCache[processName] = description;
-				}
-
-                auto processInfo = winrt::make<winrt::StarlightGUI::implementation::ProcessInfo>();
-                processInfo.Id((int32_t)pe32.th32ProcessID);
-                processInfo.Name(pe32.szExeFile);
-                processInfo.Description(descriptionCache[processName]);
-                processInfo.MemoryUsageByte(memoryUsage);
-                processInfo.ExecutablePath(processName);
-
-                processes.push_back(processInfo);
+            if (process.Name() == L"Idle" || process.Name() == L"System" || process.Name() == L"Registry") {
+                descriptionTable[process.Id()] = L"系统进程";
+                continue;
             }
 
-            CloseHandle(hProcess);
+            std::wstring path = process.ExecutablePath().c_str();
+            if (path.empty()) {
+                descriptionTable[process.Id()] = L"应用程序";
+                continue;
+            }
+
+            auto key = NormalizeCacheKey(path);
+            auto cacheIt = descriptionCache.find(key);
+            if (cacheIt != descriptionCache.end()) {
+                descriptionTable[process.Id()] = cacheIt->second;
+            }
+            else {
+                missingDescriptionProcesses.push_back(process);
+            }
         }
+
+        co_await winrt::resume_background();
+
+        co_await TaskUtils::FetchProcessCpuUsage(processCpuTable);
+
+        for (auto const& process : missingDescriptionProcesses) {
+            if (!process) continue;
+
+            std::wstring description = L"应用程序";
+            std::wstring path = process.ExecutablePath().c_str();
+            std::wstring cacheKey;
+            if (!path.empty()) {
+                cacheKey = NormalizeCacheKey(path);
+                DWORD dummy = 0;
+                DWORD versionInfoSize = GetFileVersionInfoSizeW(path.c_str(), &dummy);
+                if (versionInfoSize > 0) {
+                    std::vector<BYTE> versionInfo(versionInfoSize);
+                    if (GetFileVersionInfoW(path.c_str(), 0, versionInfoSize, versionInfo.data())) {
+                        wchar_t* fileDescription = nullptr;
+                        UINT descriptionSize = 0;
+                        if (VerQueryValueW(versionInfo.data(), L"\\StringFileInfo\\040904b0\\FileDescription", (LPVOID*)&fileDescription, &descriptionSize) &&
+                            fileDescription && descriptionSize > 0) {
+                            description = fileDescription;
+                        }
+                    }
+                }
+            }
+            descriptions.push_back({ process.Id(), cacheKey, winrt::hstring(description) });
+        }
+
+        co_await wil::resume_foreground(DispatcherQueue());
+        if (!IsLoaded() || loadToken != m_currentLoadToken) co_return;
+        for (auto const& item : descriptions) {
+            descriptionTable[item.Pid] = item.Description;
+            if (!item.CacheKey.empty()) {
+                descriptionCache[item.CacheKey] = item.Description;
+            }
+        }
+
+        for (auto const& process : processes) {
+            if (!process) continue;
+            if (loadToken != m_currentLoadToken) co_return;
+
+            auto cpuIt = processCpuTable.find((DWORD)process.Id());
+            if (cpuIt != processCpuTable.end()) process.CpuUsage(cpuIt->second);
+            else process.CpuUsage(L"-1 (未知)");
+
+            if (process.MemoryUsageByte() != 0) process.MemoryUsage(FormatMemorySize(process.MemoryUsageByte()));
+            else process.MemoryUsage(L"-1 (未知)");
+
+            if (process.Status().empty()) process.Status(L"(未知)");
+            if (process.EProcess().empty()) process.EProcess(L"(未知)");
+
+            auto descIt = descriptionTable.find(process.Id());
+            if (descIt != descriptionTable.end()) {
+                process.Description(descIt->second);
+                UpdateRealizedItemDescription(process, descIt->second);
+            }
+            else if (process.Description().empty()) {
+                process.Description(L"应用程序");
+                UpdateRealizedItemDescription(process, process.Description());
+            }
+
+            if (!process.Icon()) {
+                std::wstring path = process.ExecutablePath().c_str();
+                if (!path.empty()) {
+                    auto key = NormalizeCacheKey(path);
+                    auto iconIt = iconCache.find(key);
+                    if (iconIt != iconCache.end()) {
+                        process.Icon(iconIt->second);
+                        UpdateRealizedItemIcon(process, iconIt->second);
+                    }
+                    else {
+                        co_await GetProcessIconAsync(process);
+                    }
+                }
+                else {
+                    co_await GetProcessIconAsync(process);
+                }
+            }
+        }
+
+        if (loadToken != m_currentLoadToken) co_return;
+
+        auto oldTransitions = ProcessListView().ItemContainerTransitions();
+        ProcessListView().ItemContainerTransitions().Clear();
+        ProcessListView().ItemsSource(nullptr);
+        ProcessListView().ItemsSource(m_processList);
+        ProcessListView().ItemContainerTransitions(oldTransitions);
+
+        m_isPostLoading = false;
+        co_return;
+    }
+
+    winrt::Windows::Foundation::IAsyncAction TaskPage::GetProcessIconAsync(winrt::StarlightGUI::ProcessInfo process) {
+        if (!process) co_return;
+        co_await wil::resume_foreground(DispatcherQueue());
+
+        std::wstring path = process.ExecutablePath().c_str();
+        std::wstring cacheKey;
+        if (!path.empty()) {
+            cacheKey = NormalizeCacheKey(path);
+            auto cacheIt = iconCache.find(cacheKey);
+            if (cacheIt != iconCache.end()) {
+                process.Icon(cacheIt->second);
+                UpdateRealizedItemIcon(process, cacheIt->second);
+                co_return;
+            }
+        }
+
+        SHFILEINFO shfi{};
+        if (!path.empty()) {
+            if (!SHGetFileInfoW(path.c_str(), 0, &shfi, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON)) {
+                if (!SHGetFileInfoW(L"C:\\Windows\\System32\\ntoskrnl.exe", FILE_ATTRIBUTE_NORMAL, &shfi, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES)) {
+                    co_return;
+                }
+            }
+        }
+        else {
+            if (!SHGetFileInfoW(L"C:\\Windows\\System32\\ntoskrnl.exe", FILE_ATTRIBUTE_NORMAL, &shfi, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES)) {
+                co_return;
+            }
+        }
+
+        ICONINFO iconInfo{};
+        if (!GetIconInfo(shfi.hIcon, &iconInfo) || !iconInfo.hbmColor) {
+            if (iconInfo.hbmMask) DeleteObject(iconInfo.hbmMask);
+            DestroyIcon(shfi.hIcon);
+            co_return;
+        }
+
+        BITMAP bmp{};
+        GetObject(iconInfo.hbmColor, sizeof(bmp), &bmp);
+        BITMAPINFOHEADER bmiHeader = { 0 };
+        bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bmiHeader.biWidth = bmp.bmWidth;
+        bmiHeader.biHeight = bmp.bmHeight;
+        bmiHeader.biPlanes = 1;
+        bmiHeader.biBitCount = 32;
+        bmiHeader.biCompression = BI_RGB;
+
+        int dataSize = bmp.bmWidthBytes * bmp.bmHeight;
+        std::vector<BYTE> buffer(dataSize);
+        GetDIBits(hdc, iconInfo.hbmColor, 0, bmp.bmHeight, buffer.data(), reinterpret_cast<BITMAPINFO*>(&bmiHeader), DIB_RGB_COLORS);
+
+        winrt::Microsoft::UI::Xaml::Media::Imaging::WriteableBitmap writeableBitmap(bmp.bmWidth, bmp.bmHeight);
+        uint8_t* data = writeableBitmap.PixelBuffer().data();
+        int rowSize = bmp.bmWidth * 4;
+        for (int i = 0; i < bmp.bmHeight; ++i) {
+            int srcOffset = i * rowSize;
+            int dstOffset = (bmp.bmHeight - 1 - i) * rowSize;
+            std::memcpy(data + dstOffset, buffer.data() + srcOffset, rowSize);
+        }
+
+        DeleteObject(iconInfo.hbmColor);
+        DeleteObject(iconInfo.hbmMask);
+        DestroyIcon(shfi.hIcon);
+
+        auto icon = writeableBitmap.as<winrt::Microsoft::UI::Xaml::Media::ImageSource>();
+        if (!cacheKey.empty()) iconCache.insert_or_assign(cacheKey, icon);
+        process.Icon(icon);
+        UpdateRealizedItemIcon(process, icon);
 
         co_return;
     }
 
-    winrt::Windows::Foundation::IAsyncAction TaskPage::GetProcessIconAsync(const winrt::StarlightGUI::ProcessInfo& process) {
-        if (iconCache.find(process.ExecutablePath()) == iconCache.end()) {
-            SHFILEINFO shfi;
-            HICON hIcon;
-            if (SHGetFileInfoW(process.ExecutablePath().c_str(), 0, &shfi, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON)) {
-				hIcon = shfi.hIcon;
-            }
-            else {
-                hIcon = (HICON)LoadImageW(NULL, MAKEINTRESOURCEW(32512), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
-            }
-            ICONINFO iconInfo;
-            if (GetIconInfo(hIcon, &iconInfo)) {
-                BITMAP bmp;
-                GetObject(iconInfo.hbmColor, sizeof(bmp), &bmp);
-                BITMAPINFOHEADER bmiHeader = { 0 };
-                bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-                bmiHeader.biWidth = bmp.bmWidth;
-                bmiHeader.biHeight = bmp.bmHeight;
-                bmiHeader.biPlanes = 1;
-                bmiHeader.biBitCount = 32;
-                bmiHeader.biCompression = BI_RGB;
+    void TaskPage::UpdateRealizedItemIcon(winrt::StarlightGUI::ProcessInfo const& process, winrt::Microsoft::UI::Xaml::Media::ImageSource const& icon)
+    {
+        if (!process || !icon || !IsLoaded()) return;
 
-                int dataSize = bmp.bmWidthBytes * bmp.bmHeight;
-                std::vector<BYTE> buffer(dataSize);
+        auto container = ProcessListView().ContainerFromItem(process).try_as<ListViewItem>();
+        if (!container) return;
 
-                GetDIBits(hdc, iconInfo.hbmColor, 0, bmp.bmHeight, buffer.data(), reinterpret_cast<BITMAPINFO*>(&bmiHeader), DIB_RGB_COLORS);
+        auto root = container.ContentTemplateRoot();
+        if (!root) return;
 
-                winrt::Microsoft::UI::Xaml::Media::Imaging::WriteableBitmap writeableBitmap(bmp.bmWidth, bmp.bmHeight);
-
-                // 将数据写入 WriteableBitmap
-                uint8_t* data = writeableBitmap.PixelBuffer().data();
-                int rowSize = bmp.bmWidth * 4;
-                for (int i = 0; i < bmp.bmHeight; ++i) {
-                    int srcOffset = i * rowSize;
-                    int dstOffset = (bmp.bmHeight - 1 - i) * rowSize;
-                    std::memcpy(data + dstOffset, buffer.data() + srcOffset, rowSize);
-                }
-
-                DeleteObject(iconInfo.hbmColor);
-                DeleteObject(iconInfo.hbmMask);
-                DestroyIcon(hIcon);
-
-                // 将图标缓存到 map 中
-                iconCache[process.ExecutablePath()] = writeableBitmap.as<winrt::Microsoft::UI::Xaml::Media::ImageSource>();
-                process.Icon(writeableBitmap);
-            }
+        auto image = FindVisualChild<Image>(root);
+        if (image) {
+            image.Source(icon);
         }
-        else {
-            if (iconCache[process.ExecutablePath()].has_value()) {
-                process.Icon(iconCache[process.ExecutablePath()].value());
-            }
-            else {
-                LOG_WARNING(__WFUNCTION__, L"File icon path (%s) does not have a value!", process.ExecutablePath().c_str());
-            }
-        }
+    }
 
-        co_return;
+    void TaskPage::UpdateRealizedItemDescription(winrt::StarlightGUI::ProcessInfo const& process, winrt::hstring const& description)
+    {
+        if (!process || !IsLoaded()) return;
+
+        auto container = ProcessListView().ContainerFromItem(process).try_as<ListViewItem>();
+        if (!container) return;
+
+        auto root = container.ContentTemplateRoot();
+        if (!root) return;
+
+        auto panel = FindVisualChild<StackPanel>(root);
+        if (!panel || panel.Children().Size() < 2) return;
+
+        auto text = panel.Children().GetAt(1).try_as<TextBlock>();
+        if (text) {
+            text.Text(description);
+        }
     }
 
     void TaskPage::ColumnHeader_Click(IInspectable const& sender, RoutedEventArgs const& e)
@@ -731,27 +847,7 @@ namespace winrt::StarlightGUI::implementation
     void TaskPage::ProcessSearchBox_TextChanged(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e)
     {
         if (!IsLoaded()) return;
-		// 每次搜索都清空之前缓存的过滤结果
-        filteredPids.clear();
-
-        winrt::hstring query = ProcessSearchBox().Text();
-
-        /*
-        * 我们的思路是这样的：
-        *  - 在LoadProcessList()中，如果搜索框为空，则缓存一次完整的进程列表
-        *  - 搜索时，先遍历这个完整的进程列表，记录需要过滤掉的进程PID
-        *  - 由于在遍历进程时，我们会先检查一遍filteredPids，所以这会直接跳过进程的所有处理
-        *  - 原先的逻辑是每次搜索都重新获取进程列表，然后再筛选一遍得到需要添加到ListView的进程，这意味着我们仍然会去处理进程，即使它最终会被过滤掉
-        *  - 这样可以大幅提升搜索性能，并且我们会在添加进程时再进程一次过滤，确保新增的进程也会被正常过滤
-        *  - 唯一的缺点是，如果正好原先有个进程退出，然后新启动了一个进程，这个新进程的PID正好是之前被过滤掉的进程的PID，那么这个新进程就会被错误地过滤掉
-        *  - 但这种情况发生的概率极低，而且影响也不大，所以可以接受，我们还有个刷新按钮可以手动刷新进程列表
-        */
-        if (!query.empty()) {
-            for (const auto& process : fullRecordedProcesses) {
-                ApplyFilter(process, query);
-            }
-        }
-
+        LoadingRing().IsActive(true);
         WaitAndReloadAsync(200);
     }
 
@@ -763,22 +859,18 @@ namespace winrt::StarlightGUI::implementation
         std::transform(name.begin(), name.end(), name.begin(), ::towlower);
         std::transform(queryWStr.begin(), queryWStr.end(), queryWStr.begin(), ::towlower);
 
-        uint32_t index;
-        bool result = name.find(queryWStr) == std::wstring::npos;
-        if (result) {
-			// 缓存过滤的PID，这样下次可以直接跳过
-			filteredPids.insert(process.Id());
-        }
-
-        return result;
+        return name.find(queryWStr) == std::wstring::npos;
     }
 
 
     slg::coroutine TaskPage::RefreshProcessListButton_Click(IInspectable const&, RoutedEventArgs const&)
     {
-        RefreshProcessListButton().IsEnabled(false);
+        if (m_isLoadingProcesses || m_isPostLoading) {
+            slg::CreateInfoBarAndDisplay(L"警告", L"当前正在加载, 请稍后再试!", InfoBarSeverity::Warning, g_mainWindowInstance);
+            co_return;
+        }
 
-        filteredPids.clear();
+        RefreshProcessListButton().IsEnabled(false);
 
         co_await LoadProcessList();
 
@@ -799,15 +891,12 @@ namespace winrt::StarlightGUI::implementation
                 bool fullPrivileges = dialog.FullPrivileges();
 
                 if (permission == 1) {
-                    int status = CreateProcessElevated(processPath.c_str(), fullPrivileges, g_mainWindowInstance);
-                    if (status != 1) {
-                        std::wstring content = L"程序启动成功，PID: " + std::to_wstring(status);
-                        slg::CreateInfoBarAndDisplay(L"成功", content.c_str(),
+                    if (CreateProcessElevated(processPath.c_str(), fullPrivileges)) {
+                        slg::CreateInfoBarAndDisplay(L"成功", L"程序启动成功!",
                             InfoBarSeverity::Success, g_mainWindowInstance);
                     }
                     else {
-                        std::wstring content = L"程序启动失败，错误码: " + std::to_wstring(GetLastError());
-                        slg::CreateInfoBarAndDisplay(L"失败", content.c_str(),
+                        slg::CreateInfoBarAndDisplay(L"失败", L"程序启动失败，错误码: " + to_hstring((int)GetLastError()),
                             InfoBarSeverity::Error, g_mainWindowInstance);
                     }
                 }
@@ -824,13 +913,11 @@ namespace winrt::StarlightGUI::implementation
                         DWORD processId = GetProcessId(sei.hProcess);
                         CloseHandle(sei.hProcess);
                         CloseHandle(sei.hIcon);
-                        std::wstring content = L"程序启动成功，PID: " + std::to_wstring(processId);
-                        slg::CreateInfoBarAndDisplay(L"成功", content.c_str(),
+                        slg::CreateInfoBarAndDisplay(L"成功", L"程序启动成功!",
                             InfoBarSeverity::Success, g_mainWindowInstance);
                     }
                     else {
-                        std::wstring content = L"程序启动失败，错误码: " + std::to_wstring(GetLastError());
-                        slg::CreateInfoBarAndDisplay(L"失败", content.c_str(),
+                        slg::CreateInfoBarAndDisplay(L"失败", L"程序启动失败，错误码: " + to_hstring((int)GetLastError()),
                             InfoBarSeverity::Error, g_mainWindowInstance);
                     }
                 }

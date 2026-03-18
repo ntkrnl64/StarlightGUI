@@ -28,6 +28,22 @@ namespace winrt::StarlightGUI::implementation
     {
         InitializeConfig();
         InitializeLogger();
+        if (elevated_run) {
+            if (ReadConfig("elevated_run_tried", true)) {
+                SaveConfig("elevated_run_tried", false);
+                LOG_INFO(L"", L"Running as TrustedInstaller!");
+            }
+            else {
+                SaveConfig("elevated_run_tried", true);
+                if (CreateProcessElevated(GetExecutablePath(), true)) {
+                    Exit();
+                    return;
+                }
+                else {
+                    LOG_ERROR(L"", L"Failed to run as TrustedInstaller! See log for more information.");
+                }
+            }
+        }
         window = make<MainWindow>();
         window.Activate();
     }

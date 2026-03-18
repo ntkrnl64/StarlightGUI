@@ -8,6 +8,7 @@
 #include <shellapi.h>
 #include <CopyFileDialog.xaml.h>
 #include <unordered_set>
+#include <winrt/Windows.ApplicationModel.DataTransfer.h>
 
 using namespace winrt;
 using namespace WinUI3Package;
@@ -16,6 +17,8 @@ using namespace Microsoft::UI::Xaml;
 
 namespace winrt::StarlightGUI::implementation
 {
+    FilePage* g_filePageInstance = nullptr;
+
     template <typename T>
     T FindVisualChild(winrt::Microsoft::UI::Xaml::DependencyObject const& parent)
     {
@@ -53,41 +56,52 @@ namespace winrt::StarlightGUI::implementation
 
     FilePage::FilePage() {
         InitializeComponent();
+        g_filePageInstance = this;
 
         hdc = GetDC(NULL);
         FileListView().ItemsSource(m_fileList);
 
         this->Loaded([this](auto&&, auto&&) {
+            g_filePageInstance = this;
             LoadFileList();
             });
 
         this->Unloaded([this](auto&&, auto&&) {
+            if (g_filePageInstance == this) g_filePageInstance = nullptr;
             ReleaseDC(NULL, hdc);
             });
 
         LOG_INFO(L"FilePage", L"FilePage initialized.");
     }
 
-	void FilePage::FileListView_RightTapped(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::RightTappedRoutedEventArgs const& e)
-	{
+    void FilePage::HandleExternalDropFiles(std::vector<std::wstring> const& paths)
+    {
+        if (paths.empty()) return;
+
+        auto lifetime = get_strong();
+        CopyDroppedPathsAsync(paths);
+    }
+
+    void FilePage::FileListView_RightTapped(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::RightTappedRoutedEventArgs const& e)
+    {
         auto listView = FileListView();
 
         slg::SelectItemOnRightTapped(listView, e, true);
 
-        if (!listView.SelectedItems() || listView.SelectedItems().Size() == 0 || 
+        if (!listView.SelectedItems() || listView.SelectedItems().Size() == 0 ||
             // 只选择"上个文件夹"时不显示，多选的话在下面跳过处理，认为是误选
-            (listView.SelectedItems().Size() == 1 && listView.SelectedItems().GetAt(0).as<winrt::StarlightGUI::FileInfo>().Flag() == 999)) 
+            (listView.SelectedItems().Size() == 1 && listView.SelectedItems().GetAt(0).as<winrt::StarlightGUI::FileInfo>().Flag() == 999))
             return;
 
         auto list = listView.SelectedItems();
-        
+
         std::vector<winrt::StarlightGUI::FileInfo> selectedFiles;
 
         for (const auto& file : list) {
             auto item = file.as<winrt::StarlightGUI::FileInfo>();
             // 跳过"上个文件夹"选项
             if (item.Flag() == 999) continue;
-            if ((item.Name() == L"Windows" || item.Name() == L"Boot" || item.Name() == L"System32" || item.Name() == L"SysWOW64" || item.Name() == L"Microsoft") && 
+            if ((item.Name() == L"Windows" || item.Name() == L"Boot" || item.Name() == L"System32" || item.Name() == L"SysWOW64" || item.Name() == L"Microsoft") &&
                 (safeAcceptedName != L"Windows" && safeAcceptedName != L"Boot" && safeAcceptedName != L"System32" && safeAcceptedName != L"SysWOW64" && safeAcceptedName != L"Microsoft")) {
                 safeAcceptedName = item.Name();
                 slg::CreateInfoBarAndDisplay(L"警告", L"该文件可能为重要文件，如果确认继续请再次点击！", InfoBarSeverity::Warning, g_mainWindowInstance);
@@ -115,15 +129,6 @@ namespace winrt::StarlightGUI::implementation
                 else ShellExecuteW(nullptr, L"open", item.Path().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
             }
             });
-        // 当选中多个内容并且其中一个是文件夹时禁用打开按钮
-        if (selectedFiles.size() > 1) {
-            for (const auto& item : selectedFiles) {
-                if (item.Directory()) {
-                    item1_1.IsEnabled(false);
-                    break;
-                }
-            }
-        }
 
         MenuFlyoutSeparator separator1;
 
@@ -224,10 +229,13 @@ namespace winrt::StarlightGUI::implementation
             co_return;
             });
 
-		// 当选中多个内容并且其中一个是文件夹时禁用锁定部分只能操作文件的按钮
+        // 当选中多个内容并且其中一个是文件夹时禁用锁定部分只能操作文件的按钮
+        // 当选中多个内容并且其中一个是文件夹时禁用打开按钮
         for (const auto& item : selectedFiles) {
             if (item.Directory()) {
                 item2_4.IsEnabled(false);
+                item2_5.IsEnabled(false);
+                if (selectedFiles.size() > 1) item1_1.IsEnabled(false);
                 break;
             }
         }
@@ -245,7 +253,7 @@ namespace winrt::StarlightGUI::implementation
         menuFlyout.Items().Append(item3_3);
 
         slg::ShowAt(menuFlyout, listView, e);
-	}
+    }
 
 	void FilePage::FileListView_DoubleTapped(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::Input::DoubleTappedRoutedEventArgs const& e)
 	{
@@ -264,6 +272,135 @@ namespace winrt::StarlightGUI::implementation
             ShellExecuteW(nullptr, L"open", item.Path().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
         }
 	}
+
+    void FilePage::FileListView_DragOver(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::DragEventArgs const& e)
+    {
+        using namespace winrt::Windows::ApplicationModel::DataTransfer;
+
+        if (e.DataView().Contains(StandardDataFormats::StorageItems())) {
+            e.AcceptedOperation(DataPackageOperation::Copy);
+            auto dragUI = e.DragUIOverride();
+            dragUI.IsCaptionVisible(true);
+            dragUI.Caption(L"复制到当前目录");
+        }
+        else {
+            e.AcceptedOperation(DataPackageOperation::None);
+        }
+    }
+
+    void FilePage::FileListView_Drop(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::DragEventArgs const& e)
+    {
+        using namespace winrt::Windows::ApplicationModel::DataTransfer;
+        using namespace winrt::Windows::Storage;
+
+        e.AcceptedOperation(DataPackageOperation::Copy);
+
+        auto deferral = e.GetDeferral();
+        auto dataView = e.DataView();
+        auto lifetime = get_strong();
+
+        [this, lifetime, deferral, dataView]() -> winrt::Windows::Foundation::IAsyncAction {
+            if (m_isLoadingFiles || m_isPostLoading) {
+                slg::CreateInfoBarAndDisplay(L"提示", L"当前正在加载，请稍后再试", InfoBarSeverity::Warning, g_mainWindowInstance);
+                deferral.Complete();
+                co_return;
+            }
+
+            try {
+                if (!dataView.Contains(StandardDataFormats::StorageItems())) {
+                    deferral.Complete();
+                    co_return;
+                }
+
+                auto droppedItems = co_await dataView.GetStorageItemsAsync();
+                if (!droppedItems || droppedItems.Size() == 0) {
+                    deferral.Complete();
+                    co_return;
+                }
+
+                std::vector<std::wstring> droppedPaths;
+                droppedPaths.reserve(droppedItems.Size());
+                for (auto const& item : droppedItems) {
+                    auto storageItem = item.try_as<IStorageItem>();
+                    if (!storageItem) {
+                        continue;
+                    }
+                    droppedPaths.push_back(storageItem.Path().c_str());
+                }
+
+                co_await CopyDroppedPathsAsync(std::move(droppedPaths));
+            }
+            catch (...) {
+                slg::CreateInfoBarAndDisplay(L"失败", L"拖拽复制时出现异常", InfoBarSeverity::Error, g_mainWindowInstance);
+            }
+
+            deferral.Complete();
+            co_return;
+            }();
+    }
+
+    winrt::Windows::Foundation::IAsyncAction FilePage::CopyDroppedPathsAsync(std::vector<std::wstring> paths)
+    {
+        if (paths.empty()) co_return;
+        if (m_isLoadingFiles || m_isPostLoading) {
+            slg::CreateInfoBarAndDisplay(L"警告", L"当前正在加载，请稍后再试!", InfoBarSeverity::Warning, g_mainWindowInstance);
+            co_return;
+        }
+
+        int successCount = 0, failedCount = 0;
+        std::wstring targetDirectory = FixBackSplash(currentDirectory.c_str());
+
+        for (auto const& rawPath : paths) {
+            std::wstring sourcePath = FixBackSplash(rawPath.c_str());
+            if (sourcePath.empty()) {
+                failedCount++;
+                continue;
+            }
+
+            auto pos = sourcePath.find_last_of(L'\\');
+            if (pos == std::wstring::npos) {
+                failedCount++;
+                continue;
+            }
+
+            std::wstring itemName = sourcePath.substr(pos + 1);
+            std::wstring targetPath = targetDirectory + L"\\" + itemName;
+
+            bool copied = false;
+
+            try {
+                if (fs::is_directory(sourcePath)) {
+                    fs::copy(sourcePath, targetPath, fs::copy_options::recursive | fs::copy_options::overwrite_existing);
+                    copied = true;
+                }
+                else if (fs::is_regular_file(sourcePath)) {
+                    copied = fs::copy_file(sourcePath, targetPath, fs::copy_options::overwrite_existing);
+                }
+            }
+            catch (...) {
+                copied = false;
+            }
+
+            if (copied) {
+                LOG_INFO(__WFUNCTION__, L"Copied by drag-drop: %s -> %s", sourcePath.c_str(), targetPath.c_str());
+                successCount++;
+            }
+            else {
+                LOG_ERROR(__WFUNCTION__, L"Failed to copy by drag-drop: %s -> %s", sourcePath.c_str(), targetPath.c_str());
+                failedCount++;
+            }
+        }
+
+        if (successCount > 0) {
+            slg::CreateInfoBarAndDisplay(L"成功", L"成功复制" + to_hstring(successCount) + L"个项目!", InfoBarSeverity::Success, g_mainWindowInstance);
+            co_await LoadFileList();
+        }
+        if (failedCount > 0) {
+            slg::CreateInfoBarAndDisplay(L"失败", L"有" + to_hstring(failedCount) + L"个项目复制失败!", InfoBarSeverity::Error, g_mainWindowInstance);
+        }
+
+        co_return;
+    }
 
     void FilePage::FileListView_ContainerContentChanging(
         winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
@@ -360,19 +497,9 @@ namespace winrt::StarlightGUI::implementation
 
         co_await winrt::resume_background();
 
-        bool hasError = false;
-        try {
-            PopulateFileMetaBatch(path);
-        }
-        catch (...) {
-            hasError = true;
-        }
+        PopulateFileMetaBatch(path);
 
         co_await wil::resume_foreground(DispatcherQueue());
-        if (hasError) {
-            m_isPostLoading = false;
-            co_return;
-        }
         if (!IsLoaded() || loadToken != m_currentLoadToken) {
             m_isPostLoading = false;
             co_return;
@@ -825,15 +952,35 @@ namespace winrt::StarlightGUI::implementation
                 auto item = file.as<winrt::StarlightGUI::FileInfo>();
                 // 跳过上个文件夹选项
                 if (item.Flag() == 999) continue;
+				if (item.Directory()) continue;
                 selectedFiles.push_back(item);
             }
 
+            int successCount = 0, failedCount = 0;
             for (const auto& item : selectedFiles) {
-                if (KernelInstance::_CopyFile(std::wstring(item.Path().c_str()).substr(0, item.Path().size() - item.Name().size()), copyPath + L"\\" + item.Name().c_str(), item.Name().c_str())) {
-                    slg::CreateInfoBarAndDisplay(L"成功", L"成功复制文件至: " + dialog.CopyPath(), InfoBarSeverity::Success, g_mainWindowInstance);
-                    WaitAndReloadAsync(1000);
+                bool result = false;
+                try {
+                    if (fs::is_directory(item.Path().c_str())) {
+                        fs::copy(item.Path().c_str(), copyPath + item.Name().c_str(), fs::copy_options::recursive | fs::copy_options::overwrite_existing);
+                        result = true;
+                    }
+                    else if (fs::is_regular_file(item.Path().c_str())) {
+                        result = fs::copy_file(item.Path().c_str(), copyPath + item.Name().c_str(), fs::copy_options::overwrite_existing);
+                    }
                 }
-                else slg::CreateInfoBarAndDisplay(L"失败", L"无法复制文件, 错误码: " + to_hstring((int)GetLastError()), InfoBarSeverity::Error, g_mainWindowInstance);
+                catch (...) {
+                    result = false;
+                }
+                
+                if (result) successCount++;
+				else failedCount++;
+            }
+            if (successCount > 0) {
+                slg::CreateInfoBarAndDisplay(L"成功", L"成功复制" + to_hstring(successCount) + L"个文件!", InfoBarSeverity::Success, g_mainWindowInstance);
+                co_await LoadFileList();
+            }
+            if (failedCount > 0) {
+                slg::CreateInfoBarAndDisplay(L"失败", L"有" + to_hstring(failedCount) + L"个文件复制失败!", InfoBarSeverity::Error, g_mainWindowInstance);
             }
         }
     }

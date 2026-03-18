@@ -1,9 +1,10 @@
 ﻿#include "pch.h"
 #include "SettingsPage.xaml.h"
-#include "Utils/Config.h"
 #if __has_include("SettingsPage.g.cpp")
 #include "SettingsPage.g.cpp"
 #endif
+
+#include "Utils/Config.h"
 #include "MainWindow.xaml.h"
 
 using namespace winrt;
@@ -85,7 +86,8 @@ namespace winrt::StarlightGUI::implementation
 
         EnumStrengthenButton().IsOn(enum_strengthen);
         PDHFirstButton().IsOn(pdh_first);
-		ListAnimationButton().IsOn(list_animation);
+		ListRevealFocusButton().IsOn(list_revealfocus);
+		ElevatedRunButton().IsOn(elevated_run);
         DangerousConfirmButton().IsOn(dangerous_confirm);
         CheckUpdateButton().IsOn(check_update);
 
@@ -115,11 +117,13 @@ namespace winrt::StarlightGUI::implementation
     }
 
     void SettingsPage::EnumStrengthenButton_Toggled(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e) {
+        if (!IsLoaded()) return;
 		enum_strengthen = EnumStrengthenButton().IsOn();
         SaveConfig("enum_strengthen", enum_strengthen);
     }
 
     void SettingsPage::PDHFirstButton_Toggled(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e) {
+        if (!IsLoaded()) return;
         pdh_first = PDHFirstButton().IsOn();
         SaveConfig("pdh_first", pdh_first);
     }
@@ -212,25 +216,38 @@ namespace winrt::StarlightGUI::implementation
         g_mainWindowInstance->LoadNavigation();
     }
 
-    void SettingsPage::ListAnimationButton_Toggled(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e)
+    void SettingsPage::ListRevealFocusButton_Toggled(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e)
     {
-        list_animation = ListAnimationButton().IsOn();
-        SaveConfig("list_animation", list_animation);
+        if (!IsLoaded()) return;
+        list_revealfocus = ListRevealFocusButton().IsOn();
+        SaveConfig("list_revealfocus", list_revealfocus);
+    }
+
+    void SettingsPage::ElevatedRunButton_Toggled(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e)
+    {
+        if (!IsLoaded()) return;
+        slg::CreateInfoBarAndDisplay(L"提示", L"该设置需要重启以生效!", InfoBarSeverity::Informational, g_mainWindowInstance);
+        elevated_run = ElevatedRunButton().IsOn();
+        SaveConfig("elevated_run", elevated_run);
     }
 
     void SettingsPage::DangerousConfirmButton_Toggled(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e)
     {
+        if (!IsLoaded()) return;
         dangerous_confirm = DangerousConfirmButton().IsOn();
         SaveConfig("dangerous_confirm", dangerous_confirm);
     }
 
     void SettingsPage::CheckUpdateButton_Toggled(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e)
     {
+        if (!IsLoaded()) return;
+		slg::CreateInfoBarAndDisplay(L"提示", L"该设置需要重启以生效!", InfoBarSeverity::Informational, g_mainWindowInstance);
         check_update = CheckUpdateButton().IsOn();
         SaveConfig("check_update", check_update);
     }
 
     void SettingsPage::ClearImageButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e) {
+        if (!IsLoaded()) return;
         SaveConfig("background_image", "");
         ImagePathText().Text(L"");
 
@@ -238,6 +255,7 @@ namespace winrt::StarlightGUI::implementation
     }
 
     slg::coroutine SettingsPage::SetImageButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e) {
+        if (!IsLoaded()) co_return;
         HWND hWnd = g_mainWindowInstance->GetWindowHandle();
 
         FileOpenPicker picker = FileOpenPicker(winrt::Microsoft::UI::GetWindowIdFromWindow(hWnd));
@@ -270,6 +288,7 @@ namespace winrt::StarlightGUI::implementation
 
 
     void SettingsPage::RefreshOpacityButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e) {
+        if (!IsLoaded()) return;
         g_mainWindowInstance->LoadBackground();
     }
 
@@ -301,11 +320,14 @@ namespace winrt::StarlightGUI::implementation
 
     void SettingsPage::LogButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e)
     {
+        if (!IsLoaded()) return;
         LOGGER_TOGGLE();
     }
 
     void SettingsPage::FixButton_Click(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e)
     {
+        if (!IsLoaded()) return;
+        slg::CreateInfoBarAndDisplay(L"提示", L"该设置需要重启以生效!", InfoBarSeverity::Informational, g_mainWindowInstance);
         DriverUtils::FixServices();
     }
 
