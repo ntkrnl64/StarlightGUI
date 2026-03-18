@@ -1,15 +1,15 @@
-name: build-msbuild
+﻿name: build-msbuild
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "master", "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "master", "main" ]
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
 
     env:
       SOLUTION_FILE: StarlightGUI.sln
@@ -42,7 +42,7 @@ jobs:
 
           $releaseDir = $releaseDirCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
           if (-not $releaseDir) {
-            throw "找不到 Release 输出目录，已尝试: $($releaseDirCandidates -join ', ')"
+            throw "Release output directory not found. Tried: $($releaseDirCandidates -join ', ')"
           }
 
           New-Item -ItemType Directory -Path artifact -Force | Out-Null
