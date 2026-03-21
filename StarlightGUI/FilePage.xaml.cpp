@@ -406,7 +406,6 @@ namespace winrt::StarlightGUI::implementation
         winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
         winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
     {
-        slg::ApplyListRevealFocusTag(sender, args);
 
         if (auto file = args.Item().try_as<winrt::StarlightGUI::FileInfo>()) {
             if (file.Icon()) {
@@ -433,6 +432,8 @@ namespace winrt::StarlightGUI::implementation
 
         std::wstring path = FixBackSplash(currentDirectory);
         auto loadToken = ++m_currentLoadToken;
+        iconLoadingKeys.clear();
+        iconPendingFiles.clear();
         currentDirectory = path;
         PathBox().Text(currentDirectory);
         LOG_INFO(__WFUNCTION__, L"Path = %s", path.c_str());
@@ -619,7 +620,9 @@ namespace winrt::StarlightGUI::implementation
     winrt::Windows::Foundation::IAsyncAction FilePage::GetFileIconAsync(winrt::StarlightGUI::FileInfo file)
     {
         if (!file) co_return;
+        auto loadToken = m_currentLoadToken;
         co_await wil::resume_foreground(DispatcherQueue());
+        if (!IsLoaded() || loadToken != m_currentLoadToken) co_return;
 
         std::wstring cacheKey = GetIconCacheKey(file);
         auto found = iconCache.find(cacheKey);
@@ -632,6 +635,12 @@ namespace winrt::StarlightGUI::implementation
         iconPendingFiles[cacheKey].push_back(file);
         if (iconLoadingKeys.find(cacheKey) != iconLoadingKeys.end()) co_return;
         iconLoadingKeys.insert(cacheKey);
+        auto cleanup = [&]() {
+            iconLoadingKeys.erase(cacheKey);
+            iconPendingFiles.erase(cacheKey);
+            };
+
+        try {
 
         SHFILEINFO shfi{};
         bool useFastAttrQuery = file.Directory() || cacheKey.find(L"__ext__") == 0;
@@ -640,8 +649,7 @@ namespace winrt::StarlightGUI::implementation
             std::wstring lookup = file.Directory() ? L"folder" : cacheKey.substr(7);
             if (!SHGetFileInfoW(lookup.c_str(), attrs, &shfi, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES)) {
                 if (!SHGetFileInfoW(L".", FILE_ATTRIBUTE_NORMAL, &shfi, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES)) {
-                    iconLoadingKeys.erase(cacheKey);
-                    iconPendingFiles.erase(cacheKey);
+                    cleanup();
                     co_return;
                 }
             }
@@ -649,8 +657,7 @@ namespace winrt::StarlightGUI::implementation
         else {
             if (!SHGetFileInfoW(file.Path().c_str(), 0, &shfi, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON)) {
                 if (!SHGetFileInfoW(L".", FILE_ATTRIBUTE_NORMAL, &shfi, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES)) {
-                    iconLoadingKeys.erase(cacheKey);
-                    iconPendingFiles.erase(cacheKey);
+                    cleanup();
                     co_return;
                 }
             }
@@ -659,8 +666,7 @@ namespace winrt::StarlightGUI::implementation
         ICONINFO iconInfo{};
         if (!GetIconInfo(shfi.hIcon, &iconInfo)) {
             DestroyIcon(shfi.hIcon);
-            iconLoadingKeys.erase(cacheKey);
-            iconPendingFiles.erase(cacheKey);
+            cleanup();
             co_return;
         }
 
@@ -694,6 +700,11 @@ namespace winrt::StarlightGUI::implementation
         auto icon = writeableBitmap.as<winrt::Microsoft::UI::Xaml::Media::ImageSource>();
         iconCache.insert_or_assign(cacheKey, icon);
 
+        if (!IsLoaded() || loadToken != m_currentLoadToken) {
+            cleanup();
+            co_return;
+        }
+
         auto pendingIt = iconPendingFiles.find(cacheKey);
         if (pendingIt != iconPendingFiles.end()) {
             for (auto const& pendingFile : pendingIt->second) {
@@ -710,6 +721,11 @@ namespace winrt::StarlightGUI::implementation
             UpdateRealizedItemIcon(file, icon);
         }
         iconLoadingKeys.erase(cacheKey);
+        }
+        catch (...) {
+            cleanup();
+            co_return;
+        }
 
         co_return;
     }

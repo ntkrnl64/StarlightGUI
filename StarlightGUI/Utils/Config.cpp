@@ -9,7 +9,6 @@ namespace winrt::StarlightGUI::implementation {
         background_type = ReadConfig("background_type", 0);
         mica_type = ReadConfig("mica_type", 1);
         acrylic_type = ReadConfig("acrylic_type", 0);
-        list_revealfocus = ReadConfig("list_revealfocus", true);
         elevated_run = ReadConfig("elevated_run", false);
         dangerous_confirm = ReadConfig("dangerous_confirm", true);
         check_update = ReadConfig("check_update", true);

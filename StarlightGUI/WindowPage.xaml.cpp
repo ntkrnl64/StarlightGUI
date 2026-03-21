@@ -510,7 +510,6 @@ namespace winrt::StarlightGUI::implementation
         winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
         winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
     {
-        slg::ApplyListRevealFocusTag(sender, args);
 
     }
 

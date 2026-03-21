@@ -17,8 +17,6 @@ using namespace Microsoft::UI::Xaml::Controls;
 using namespace Microsoft::UI::Xaml::Media::Imaging;
 using namespace Microsoft::UI::Xaml::Media::Animation;
 
-extern bool list_revealfocus;
-
 namespace slg {
     struct coroutine {
         coroutine();
@@ -124,16 +122,4 @@ namespace slg {
         return false;
     }
 
-    inline void ApplyListRevealFocusTag(
-        winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
-        winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
-    {
-        if (args.InRecycleQueue()) return;
-
-        if (auto itemContainer = args.ItemContainer())
-        {
-            if (list_revealfocus) itemContainer.Tag(sender.Tag());
-            else itemContainer.ClearValue(winrt::Microsoft::UI::Xaml::FrameworkElement::TagProperty());
-        }
-    }
 }

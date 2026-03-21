@@ -274,25 +274,6 @@
                     </ComboBox>
                 </essential:SettingsCard>
 
-                <essential:SettingsCard
-                    Margin="0,0,0,10"
-                    essential:RevealFocusPanel.AttachToPanel="{x:Bind RevealFocusPanel}"
-                    Description="控制列表是否显示 RevealFocus 特效"
-                    Header="列表特效"
-                    IsActionIconVisible="False"
-                    IsClickEnabled="True">
-                    <essential:SettingsCard.HeaderIcon>
-                        <FontIcon
-                            FontFamily="Segoe Fluent Icons"
-                            FontSize="16"
-                            Glyph="&#xeb9d;" />
-                    </essential:SettingsCard.HeaderIcon>
-                    <ToggleSwitch
-                        x:Name="ListRevealFocusButton"
-                        Margin="0,0,-80,0"
-                        Toggled="ListRevealFocusButton_Toggled" />
-                </essential:SettingsCard>
-
                 <TextBlock
                     Padding="10"
                     HorizontalAlignment="Left"

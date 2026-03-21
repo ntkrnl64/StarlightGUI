@@ -373,7 +373,6 @@ namespace winrt::StarlightGUI::implementation
         winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
         winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
     {
-        slg::ApplyListRevealFocusTag(sender, args);
 
         if (args.InRecycleQueue()) return;
 
@@ -610,7 +609,9 @@ namespace winrt::StarlightGUI::implementation
 
     winrt::Windows::Foundation::IAsyncAction TaskPage::GetProcessIconAsync(winrt::StarlightGUI::ProcessInfo process) {
         if (!process) co_return;
+        auto loadToken = m_currentLoadToken;
         co_await wil::resume_foreground(DispatcherQueue());
+        if (!IsLoaded() || loadToken != m_currentLoadToken) co_return;
 
         std::wstring path = process.ExecutablePath().c_str();
         std::wstring cacheKey;
@@ -671,6 +672,8 @@ namespace winrt::StarlightGUI::implementation
         DeleteObject(iconInfo.hbmColor);
         DeleteObject(iconInfo.hbmMask);
         DestroyIcon(shfi.hIcon);
+
+        if (!IsLoaded() || loadToken != m_currentLoadToken) co_return;
 
         auto icon = writeableBitmap.as<winrt::Microsoft::UI::Xaml::Media::ImageSource>();
         if (!cacheKey.empty()) iconCache.insert_or_assign(cacheKey, icon);

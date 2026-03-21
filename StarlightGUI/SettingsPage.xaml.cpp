@@ -33,7 +33,6 @@ namespace winrt::StarlightGUI::implementation
 
         EnumStrengthenButton().IsOn(enum_strengthen);
         PDHFirstButton().IsOn(pdh_first);
-		ListRevealFocusButton().IsOn(list_revealfocus);
 		ElevatedRunButton().IsOn(elevated_run);
         DangerousConfirmButton().IsOn(dangerous_confirm);
         CheckUpdateButton().IsOn(check_update);
@@ -110,13 +109,6 @@ namespace winrt::StarlightGUI::implementation
         SaveConfig("navigation_style", (int)NavigationComboBox().SelectedIndex());
 
         g_mainWindowInstance->LoadNavigation();
-    }
-
-    void SettingsPage::ListRevealFocusButton_Toggled(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e)
-    {
-        if (!IsLoaded()) return;
-        list_revealfocus = ListRevealFocusButton().IsOn();
-        SaveConfig("list_revealfocus", list_revealfocus);
     }
 
     void SettingsPage::ElevatedRunButton_Toggled(winrt::Windows::Foundation::IInspectable const& sender, winrt::Microsoft::UI::Xaml::RoutedEventArgs const& e)
