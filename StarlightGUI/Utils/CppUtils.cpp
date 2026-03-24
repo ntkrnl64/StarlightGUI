@@ -10,9 +10,6 @@
 #include <cwctype>
 #include <fstream>
 
-#undef max
-#undef min
-
 namespace winrt::StarlightGUI::implementation {
     const static uint64_t KB = 1024;
     const static uint64_t MB = KB * 1024;

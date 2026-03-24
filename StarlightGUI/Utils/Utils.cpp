@@ -2,10 +2,108 @@
 #include "Utils.h"
 #include <winrt/XamlToolkit.WinUI.Controls.h>
 #include <unordered_map>
+#include <unordered_set>
 #include <shellapi.h>
 #include <cstring>
+#include <limits>
+#include <cmath>
 
 namespace slg {
+    static void UpdateTextMarqueeByNamesCore(
+        winrt::Microsoft::UI::Xaml::FrameworkElement const& itemRoot,
+        winrt::hstring const& containerName,
+        winrt::hstring const& textBlockName,
+        winrt::hstring const& marqueeName,
+        double widthPadding,
+        int retryCount);
+
+    static void UpdateVisibleListViewMarqueeByNamesCore(
+        winrt::Microsoft::UI::Xaml::Controls::ListView const& listView,
+        uint32_t itemCount,
+        winrt::hstring const& containerName,
+        winrt::hstring const& textBlockName,
+        winrt::hstring const& marqueeName,
+        double widthPadding)
+    {
+        if (!listView) return;
+        auto liveCount = listView.Items().Size();
+        if (liveCount > itemCount) itemCount = liveCount;
+
+        for (uint32_t i = 0; i < itemCount; ++i) {
+            auto itemContainer = listView.ContainerFromIndex(i).try_as<winrt::Microsoft::UI::Xaml::Controls::ListViewItem>();
+            if (!itemContainer) continue;
+
+            auto contentRoot = itemContainer.ContentTemplateRoot().try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>();
+            if (!contentRoot) continue;
+
+            UpdateTextMarqueeByNames(contentRoot, containerName, textBlockName, marqueeName, widthPadding);
+        }
+    }
+
+    static void EnsureListViewMarqueeScrollHook(
+        winrt::Microsoft::UI::Xaml::Controls::ListView const& listView,
+        winrt::hstring const& containerName,
+        winrt::hstring const& textBlockName,
+        winrt::hstring const& marqueeName,
+        double widthPadding,
+        int retryCount = 0)
+    {
+        if (!listView) return;
+
+        static std::unordered_set<uint64_t> hookedListViews;
+        uint64_t key = reinterpret_cast<uint64_t>(winrt::get_abi(listView));
+        if (hookedListViews.find(key) != hookedListViews.end()) return;
+
+        auto scrollViewer = slg::FindVisualChild<winrt::Microsoft::UI::Xaml::Controls::ScrollViewer>(listView);
+        if (!scrollViewer) {
+            if (retryCount < 4) {
+                listView.DispatcherQueue().TryEnqueue([listView, containerName, textBlockName, marqueeName, widthPadding, retryCount]() {
+                    EnsureListViewMarqueeScrollHook(listView, containerName, textBlockName, marqueeName, widthPadding, retryCount + 1);
+                    });
+            }
+            return;
+        }
+
+        hookedListViews.insert(key);
+        scrollViewer.ViewChanged([listView, containerName, textBlockName, marqueeName, widthPadding](auto&&, auto&&) {
+            if (!listView) return;
+            auto count = listView.Items().Size();
+            UpdateVisibleListViewMarqueeByNamesCore(listView, count, containerName, textBlockName, marqueeName, widthPadding);
+            });
+    }
+
+    static void EnsureListViewMarqueeContainerHook(
+        winrt::Microsoft::UI::Xaml::Controls::ListView const& listView,
+        winrt::hstring const& containerName,
+        winrt::hstring const& textBlockName,
+        winrt::hstring const& marqueeName,
+        double widthPadding)
+    {
+        if (!listView) return;
+
+        static std::unordered_set<uint64_t> hookedListViews;
+        uint64_t key = reinterpret_cast<uint64_t>(winrt::get_abi(listView));
+        if (hookedListViews.find(key) != hookedListViews.end()) return;
+        hookedListViews.insert(key);
+
+        listView.ContainerContentChanging([listView, containerName, textBlockName, marqueeName, widthPadding](auto&&, auto&& args) {
+            auto itemContainer = args.ItemContainer().try_as<winrt::Microsoft::UI::Xaml::Controls::ListViewItem>();
+            if (!itemContainer) return;
+
+            auto contentRoot = itemContainer.ContentTemplateRoot().try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>();
+            if (!contentRoot) return;
+
+            UpdateTextMarqueeByNames(contentRoot, containerName, textBlockName, marqueeName, widthPadding);
+
+            // Virtualized rows may finish arrange in a later tick.
+            if (listView) {
+                listView.DispatcherQueue().TryEnqueue([contentRoot, containerName, textBlockName, marqueeName, widthPadding]() {
+                    UpdateTextMarqueeByNames(contentRoot, containerName, textBlockName, marqueeName, widthPadding);
+                    });
+            }
+            });
+    }
+
     std::unordered_map<std::wstring, winrt::Microsoft::UI::Xaml::Media::ImageSource>& GetShellIconCacheStore()
     {
         static std::unordered_map<std::wstring, winrt::Microsoft::UI::Xaml::Media::ImageSource> cache;
@@ -351,5 +449,102 @@ namespace slg {
     void ClearShellIconCache()
     {
         GetShellIconCacheStore().clear();
+    }
+
+    void UpdateTextMarqueeByNames(
+        winrt::Microsoft::UI::Xaml::FrameworkElement const& itemRoot,
+        winrt::hstring const& containerName,
+        winrt::hstring const& textBlockName,
+        winrt::hstring const& marqueeName,
+        double widthPadding)
+    {
+        UpdateTextMarqueeByNamesCore(itemRoot, containerName, textBlockName, marqueeName, widthPadding, 0);
+    }
+
+    static void UpdateTextMarqueeByNamesCore(
+        winrt::Microsoft::UI::Xaml::FrameworkElement const& itemRoot,
+        winrt::hstring const& containerName,
+        winrt::hstring const& textBlockName,
+        winrt::hstring const& marqueeName,
+        double widthPadding,
+        int retryCount)
+    {
+        if (!itemRoot) return;
+
+        auto textContainer = itemRoot.FindName(containerName).try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>();
+        auto textBlock = itemRoot.FindName(textBlockName).try_as<winrt::Microsoft::UI::Xaml::Controls::TextBlock>();
+        auto marquee = itemRoot.FindName(marqueeName).try_as<winrt::WinUI3Package::MarqueeText>();
+        if (!textContainer || !textBlock || !marquee) return;
+
+        double availableWidth = textContainer.ActualWidth();
+        if (availableWidth <= 1.0) {
+            if (retryCount < 3) {
+                itemRoot.DispatcherQueue().TryEnqueue([itemRoot, containerName, textBlockName, marqueeName, widthPadding, retryCount]() {
+                    UpdateTextMarqueeByNamesCore(itemRoot, containerName, textBlockName, marqueeName, widthPadding, retryCount + 1);
+                    });
+            }
+            return;
+        }
+
+        bool shouldUseMarquee = false;
+        if (!textBlock.Text().empty()) {
+            winrt::Microsoft::UI::Xaml::Controls::TextBlock measureBlock;
+            measureBlock.Text(textBlock.Text());
+            measureBlock.FontFamily(textBlock.FontFamily());
+            measureBlock.FontSize(textBlock.FontSize());
+            measureBlock.FontWeight(textBlock.FontWeight());
+            measureBlock.Measure({
+                static_cast<float>(std::numeric_limits<float>::max()),
+                static_cast<float>(std::numeric_limits<float>::max())
+                });
+
+            // Keep borderline overflow cases on marquee to avoid first-frame under-measure.
+            shouldUseMarquee = std::ceil(measureBlock.DesiredSize().Width) >= std::floor(availableWidth - widthPadding);
+        }
+
+        textBlock.Visibility(shouldUseMarquee ? winrt::Microsoft::UI::Xaml::Visibility::Collapsed : winrt::Microsoft::UI::Xaml::Visibility::Visible);
+        marquee.Visibility(shouldUseMarquee ? winrt::Microsoft::UI::Xaml::Visibility::Visible : winrt::Microsoft::UI::Xaml::Visibility::Collapsed);
+
+        if (shouldUseMarquee) {
+            auto targetText = textBlock.Text();
+            if (marquee.Text() == targetText) {
+                // Force text change to retrigger internal animation without calling control methods.
+                marquee.Text(L"");
+            }
+            marquee.Text(targetText);
+
+            // One extra tick for controls that miss first-frame animation startup.
+            if (retryCount < 2) {
+                itemRoot.DispatcherQueue().TryEnqueue([itemRoot, containerName, textBlockName, marqueeName, widthPadding, retryCount]() {
+                    UpdateTextMarqueeByNamesCore(itemRoot, containerName, textBlockName, marqueeName, widthPadding, retryCount + 1);
+                    });
+            }
+        }
+        else {
+            // Keep hidden marquee lightweight and avoid stale animation state.
+            if (!marquee.Text().empty()) marquee.Text(L"");
+        }
+    }
+
+    void UpdateVisibleListViewMarqueeByNames(
+        winrt::Microsoft::UI::Xaml::Controls::ListView const& listView,
+        uint32_t itemCount,
+        winrt::hstring const& containerName,
+        winrt::hstring const& textBlockName,
+        winrt::hstring const& marqueeName,
+        double widthPadding)
+    {
+        if (!listView) return;
+
+        EnsureListViewMarqueeContainerHook(listView, containerName, textBlockName, marqueeName, widthPadding);
+        EnsureListViewMarqueeScrollHook(listView, containerName, textBlockName, marqueeName, widthPadding);
+        UpdateVisibleListViewMarqueeByNamesCore(listView, itemCount, containerName, textBlockName, marqueeName, widthPadding);
+
+        // Re-evaluate on next UI tick: first pass can happen before final arrange width is settled.
+        listView.DispatcherQueue().TryEnqueue([listView, containerName, textBlockName, marqueeName, widthPadding]() {
+            if (!listView) return;
+            auto count = listView.Items().Size();
+            UpdateVisibleListViewMarqueeByNamesCore(listView, count, containerName, textBlockName, marqueeName, widthPadding);
+            });
     }
 }

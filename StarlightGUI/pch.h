@@ -16,6 +16,9 @@
 
 // 取消定义 GetCurrentTime 宏，避免与 Storyboard::GetCurrentTime 冲突
 #undef GetCurrentTime
+// 微软我超牛魔的
+#undef min
+#undef max
 
 // 控制台相关
 #include <Console.h>

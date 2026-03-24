@@ -118,15 +118,29 @@
                                         </Grid.ColumnDefinitions>
 
                                         <!--  模块  -->
-                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <StackPanel
+                                            x:Name="PrimaryTextContainer"
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center">
                                             <TextBlock
                                                 FontSize="14"
                                                 Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
                                                 Text="{Binding Name}" />
                                             <TextBlock
+                                                x:Name="SecondaryTextBlock"
                                                 FontSize="12"
                                                 Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
                                                 Text="{Binding Path}" />
+                                            <essential:MarqueeText
+                                                x:Name="SecondaryMarquee"
+                                                Behavior="Looping"
+                                                Direction="Left"
+                                                FontSize="12"
+                                                Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                                PauseOnHover="True"
+                                                Speed="40"
+                                                Text="{Binding Path}"
+                                                Visibility="Collapsed" />
                                         </StackPanel>
 
                                         <!--  地址  -->

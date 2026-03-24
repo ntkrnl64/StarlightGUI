@@ -52,6 +52,16 @@ namespace winrt::StarlightGUI::implementation
         InitializeComponent();
 
         ProcessListView().ItemsSource(m_processList);
+        ProcessListView().SizeChanged([weak = get_weak()](auto&&, auto&&) {
+            if (auto self = weak.get()) {
+                slg::UpdateVisibleListViewMarqueeByNames(
+                    self->ProcessListView(),
+                    self->m_processList.Size(),
+                    L"ProcessTextContainer",
+                    L"ProcessDescriptionTextBlock",
+                    L"ProcessDescriptionMarquee");
+            }
+            });
         autoRefreshTimer.Interval(std::chrono::seconds(2));
         autoRefreshTimer.Tick([this](auto&&, auto&&) {
             if (!task_auto_refresh) return;
@@ -375,6 +385,27 @@ namespace winrt::StarlightGUI::implementation
         if (auto process = args.Item().try_as<winrt::StarlightGUI::ProcessInfo>()) {
             UpdateRealizedItemDescription(process, process.Description());
             UpdateRealizedItemMetrics(process);
+
+            auto itemContainer = args.ItemContainer().try_as<winrt::Microsoft::UI::Xaml::Controls::ListViewItem>();
+            if (itemContainer) {
+                auto contentRoot = itemContainer.ContentTemplateRoot().try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>();
+                if (contentRoot) {
+                    slg::UpdateTextMarqueeByNames(
+                        contentRoot,
+                        L"ProcessTextContainer",
+                        L"ProcessDescriptionTextBlock",
+                        L"ProcessDescriptionMarquee");
+                    DispatcherQueue().TryEnqueue([weak = get_weak(), contentRoot]() {
+                        if (auto self = weak.get()) {
+                            slg::UpdateTextMarqueeByNames(
+                                contentRoot,
+                                L"ProcessTextContainer",
+                                L"ProcessDescriptionTextBlock",
+                                L"ProcessDescriptionMarquee");
+                        }
+                        });
+                }
+            }
 
             if (process.Icon()) {
                 UpdateRealizedItemIcon(process, process.Icon());
@@ -808,12 +839,19 @@ namespace winrt::StarlightGUI::implementation
         auto root = container.ContentTemplateRoot();
         if (!root) return;
 
-        auto panel = slg::FindVisualChild<StackPanel>(root);
-        if (!panel || panel.Children().Size() < 2) return;
+        auto text = root.as<winrt::Microsoft::UI::Xaml::FrameworkElement>().FindName(L"ProcessDescriptionTextBlock").try_as<TextBlock>();
+        if (text) text.Text(description);
 
-        auto text = panel.Children().GetAt(1).try_as<TextBlock>();
-        if (text) {
-            text.Text(description);
+        auto marquee = root.as<winrt::Microsoft::UI::Xaml::FrameworkElement>().FindName(L"ProcessDescriptionMarquee").try_as<winrt::WinUI3Package::MarqueeText>();
+        if (marquee) marquee.Text(description);
+
+        auto contentRoot = root.try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>();
+        if (contentRoot) {
+            slg::UpdateTextMarqueeByNames(
+                contentRoot,
+                L"ProcessTextContainer",
+                L"ProcessDescriptionTextBlock",
+                L"ProcessDescriptionMarquee");
         }
     }
 

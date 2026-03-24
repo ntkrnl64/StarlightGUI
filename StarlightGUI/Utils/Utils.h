@@ -105,6 +105,21 @@ namespace slg {
 
     void ClearShellIconCache();
 
+    void UpdateTextMarqueeByNames(
+        winrt::Microsoft::UI::Xaml::FrameworkElement const& itemRoot,
+        winrt::hstring const& containerName,
+        winrt::hstring const& textBlockName,
+        winrt::hstring const& marqueeName,
+        double widthPadding = 2.0);
+
+    void UpdateVisibleListViewMarqueeByNames(
+        winrt::Microsoft::UI::Xaml::Controls::ListView const& listView,
+        uint32_t itemCount,
+        winrt::hstring const& containerName,
+        winrt::hstring const& textBlockName,
+        winrt::hstring const& marqueeName,
+        double widthPadding = 2.0);
+
     template <typename T>
     T FindParent(winrt::Microsoft::UI::Xaml::DependencyObject const& child)
     {

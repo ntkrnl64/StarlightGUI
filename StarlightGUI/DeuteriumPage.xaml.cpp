@@ -6,9 +6,6 @@
 
 #include <limits>
 
-#undef max
-#undef min
-
 using namespace winrt;
 using namespace Microsoft::UI::Xaml;
 

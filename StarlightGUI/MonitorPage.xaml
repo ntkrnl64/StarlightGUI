@@ -302,15 +302,40 @@
                                             </Grid.ColumnDefinitions>
 
                                             <!--  名称  -->
-                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <StackPanel
+                                                x:Name="PrimaryTextContainer"
+                                                Grid.Column="0"
+                                                VerticalAlignment="Center">
                                                 <TextBlock
+                                                    x:Name="PrimaryTextBlock"
                                                     FontSize="14"
                                                     Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
                                                     Text="{Binding Name}" />
+                                                <essential:MarqueeText
+                                                    x:Name="PrimaryMarquee"
+                                                    Behavior="Looping"
+                                                    Direction="Left"
+                                                    FontSize="14"
+                                                    Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                                    PauseOnHover="True"
+                                                    Speed="40"
+                                                    Text="{Binding Name}"
+                                                    Visibility="Collapsed" />
                                                 <TextBlock
+                                                    x:Name="SecondaryTextBlock"
                                                     FontSize="12"
                                                     Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
                                                     Text="{Binding Path}" />
+                                                <essential:MarqueeText
+                                                    x:Name="SecondaryMarquee"
+                                                    Behavior="Looping"
+                                                    Direction="Left"
+                                                    FontSize="12"
+                                                    Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                                    PauseOnHover="True"
+                                                    Speed="40"
+                                                    Text="{Binding Path}"
+                                                    Visibility="Collapsed" />
                                             </StackPanel>
 
                                             
@@ -456,15 +481,29 @@
                                         </Grid.ColumnDefinitions>
 
                                         <!--  类型/模块  -->
-                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <StackPanel
+                                            x:Name="PrimaryTextContainer"
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center">
                                             <TextBlock
                                                 FontSize="14"
                                                 Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
                                                 Text="{Binding String2}" />
                                             <TextBlock
+                                                x:Name="SecondaryTextBlock"
                                                 FontSize="12"
                                                 Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
                                                 Text="{Binding String1}" />
+                                            <essential:MarqueeText
+                                                x:Name="SecondaryMarquee"
+                                                Behavior="Looping"
+                                                Direction="Left"
+                                                FontSize="12"
+                                                Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                                PauseOnHover="True"
+                                                Speed="40"
+                                                Text="{Binding String1}"
+                                                Visibility="Collapsed" />
                                         </StackPanel>
 
                                         
@@ -597,15 +636,29 @@
                                         </Grid.ColumnDefinitions>
 
                                         <!--  IRP/模块  -->
-                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <StackPanel
+                                            x:Name="PrimaryTextContainer"
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center">
                                             <TextBlock
                                                 FontSize="14"
                                                 Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
                                                 Text="{Binding String2}" />
                                             <TextBlock
+                                                x:Name="SecondaryTextBlock"
                                                 FontSize="12"
                                                 Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
                                                 Text="{Binding String1}" />
+                                            <essential:MarqueeText
+                                                x:Name="SecondaryMarquee"
+                                                Behavior="Looping"
+                                                Direction="Left"
+                                                FontSize="12"
+                                                Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                                PauseOnHover="True"
+                                                Speed="40"
+                                                Text="{Binding String1}"
+                                                Visibility="Collapsed" />
                                         </StackPanel>
 
                                         
@@ -757,15 +810,29 @@
                                         </Grid.ColumnDefinitions>
 
                                         <!--  驱动/模块  -->
-                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <StackPanel
+                                            x:Name="PrimaryTextContainer"
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center">
                                             <TextBlock
                                                 FontSize="14"
                                                 Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
                                                 Text="{Binding String2}" />
                                             <TextBlock
+                                                x:Name="SecondaryTextBlock"
                                                 FontSize="12"
                                                 Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
                                                 Text="{Binding String3}" />
+                                            <essential:MarqueeText
+                                                x:Name="SecondaryMarquee"
+                                                Behavior="Looping"
+                                                Direction="Left"
+                                                FontSize="12"
+                                                Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                                PauseOnHover="True"
+                                                Speed="40"
+                                                Text="{Binding String3}"
+                                                Visibility="Collapsed" />
                                         </StackPanel>
 
                                         
@@ -1423,15 +1490,29 @@
                                         </Grid.ColumnDefinitions>
 
                                         <!--  名称/模块  -->
-                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <StackPanel
+                                            x:Name="PrimaryTextContainer"
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center">
                                             <TextBlock
                                                 FontSize="14"
                                                 Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
                                                 Text="{Binding String1}" />
                                             <TextBlock
+                                                x:Name="SecondaryTextBlock"
                                                 FontSize="12"
                                                 Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
                                                 Text="{Binding String2}" />
+                                            <essential:MarqueeText
+                                                x:Name="SecondaryMarquee"
+                                                Behavior="Looping"
+                                                Direction="Left"
+                                                FontSize="12"
+                                                Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                                PauseOnHover="True"
+                                                Speed="40"
+                                                Text="{Binding String2}"
+                                                Visibility="Collapsed" />
                                         </StackPanel>
 
                                         

@@ -40,6 +40,16 @@ namespace winrt::StarlightGUI::implementation
         InitializeComponent();
 
         ModuleListView().ItemsSource(m_moduleList);
+        ModuleListView().SizeChanged([weak = get_weak()](auto&&, auto&&) {
+            if (auto self = weak.get()) {
+                slg::UpdateVisibleListViewMarqueeByNames(
+                    self->ModuleListView(),
+                    self->m_moduleList.Size(),
+                    L"PrimaryTextContainer",
+                    L"SecondaryTextBlock",
+                    L"SecondaryMarquee");
+            }
+            });
 
         this->Loaded([this](auto&&, auto&&) {
             LoadModuleList();
@@ -107,7 +117,29 @@ namespace winrt::StarlightGUI::implementation
         winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
         winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
     {
+        if (args.InRecycleQueue()) return;
 
+        auto itemContainer = args.ItemContainer().try_as<winrt::Microsoft::UI::Xaml::Controls::ListViewItem>();
+        if (!itemContainer) return;
+
+        auto contentRoot = itemContainer.ContentTemplateRoot().try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>();
+        if (!contentRoot) return;
+
+        slg::UpdateTextMarqueeByNames(
+            contentRoot,
+            L"PrimaryTextContainer",
+            L"SecondaryTextBlock",
+            L"SecondaryMarquee");
+
+        DispatcherQueue().TryEnqueue([weak = get_weak(), contentRoot]() {
+            if (auto self = weak.get()) {
+                slg::UpdateTextMarqueeByNames(
+                    contentRoot,
+                    L"PrimaryTextContainer",
+                    L"SecondaryTextBlock",
+                    L"SecondaryMarquee");
+            }
+            });
     }
 
     winrt::Windows::Foundation::IAsyncAction Process_ModulePage::LoadModuleList()
@@ -157,6 +189,12 @@ namespace winrt::StarlightGUI::implementation
         countText << L"共 " << m_moduleList.Size() << L" 个模块 (" << duration.count() << " ms)";
         ModuleCountText().Text(countText.str());
         LoadingRing().IsActive(false);
+        slg::UpdateVisibleListViewMarqueeByNames(
+            ModuleListView(),
+            m_moduleList.Size(),
+            L"PrimaryTextContainer",
+            L"SecondaryTextBlock",
+            L"SecondaryMarquee");
 
         LOG_INFO(__WFUNCTION__, L"Loaded module list, %d entry(s) in total.", m_moduleList.Size());
     }

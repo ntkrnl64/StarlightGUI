@@ -43,6 +43,16 @@ namespace winrt::StarlightGUI::implementation
         InitializeComponent();
 
         KernelModuleListView().ItemsSource(m_kernelModuleList);
+        KernelModuleListView().SizeChanged([weak = get_weak()](auto&&, auto&&) {
+            if (auto self = weak.get()) {
+                slg::UpdateVisibleListViewMarqueeByNames(
+                    self->KernelModuleListView(),
+                    self->m_kernelModuleList.Size(),
+                    L"PrimaryTextContainer",
+                    L"SecondaryTextBlock",
+                    L"SecondaryMarquee");
+            }
+            });
 
         this->Loaded([this](auto&&, auto&&) {
             LoadKernelModuleList();
@@ -140,7 +150,29 @@ namespace winrt::StarlightGUI::implementation
         winrt::Microsoft::UI::Xaml::Controls::ListViewBase const& sender,
         winrt::Microsoft::UI::Xaml::Controls::ContainerContentChangingEventArgs const& args)
     {
+        if (args.InRecycleQueue()) return;
 
+        auto itemContainer = args.ItemContainer().try_as<winrt::Microsoft::UI::Xaml::Controls::ListViewItem>();
+        if (!itemContainer) return;
+
+        auto contentRoot = itemContainer.ContentTemplateRoot().try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>();
+        if (!contentRoot) return;
+
+        slg::UpdateTextMarqueeByNames(
+            contentRoot,
+            L"PrimaryTextContainer",
+            L"SecondaryTextBlock",
+            L"SecondaryMarquee");
+
+        DispatcherQueue().TryEnqueue([weak = get_weak(), contentRoot]() {
+            if (auto self = weak.get()) {
+                slg::UpdateTextMarqueeByNames(
+                    contentRoot,
+                    L"PrimaryTextContainer",
+                    L"SecondaryTextBlock",
+                    L"SecondaryMarquee");
+            }
+            });
     }
 
     winrt::Windows::Foundation::IAsyncAction KernelModulePage::LoadKernelModuleList()
@@ -197,6 +229,12 @@ namespace winrt::StarlightGUI::implementation
         KernelModuleCountText().Text(countText.str());
 
         LoadingRing().IsActive(false);
+        slg::UpdateVisibleListViewMarqueeByNames(
+            KernelModuleListView(),
+            m_kernelModuleList.Size(),
+            L"PrimaryTextContainer",
+            L"SecondaryTextBlock",
+            L"SecondaryMarquee");
 
         LOG_INFO(__WFUNCTION__, L"Loaded kernel module list, %d entry(s) in total.", m_kernelModuleList.Size());
         m_isLoadingKernelModules = false;

@@ -218,15 +218,30 @@
                                         Source="{Binding Icon}" />
 
                                     <!--  进程名  -->
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <StackPanel
+                                        x:Name="ProcessTextContainer"
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center">
                                         <TextBlock
+                                            x:Name="ProcessNameTextBlock"
                                             FontSize="14"
                                             Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
                                             Text="{Binding Name}" />
                                         <TextBlock
+                                            x:Name="ProcessDescriptionTextBlock"
                                             FontSize="12"
                                             Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
                                             Text="{Binding Description}" />
+                                        <essential:MarqueeText
+                                            x:Name="ProcessDescriptionMarquee"
+                                            Behavior="Looping"
+                                            Direction="Left"
+                                            FontSize="12"
+                                            Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                            PauseOnHover="True"
+                                            Speed="40"
+                                            Text="{Binding Description}"
+                                            Visibility="Collapsed" />
                                     </StackPanel>
 
                                     <!--  EPROCESS  -->

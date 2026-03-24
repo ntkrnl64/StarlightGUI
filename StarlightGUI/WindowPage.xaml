@@ -57,8 +57,8 @@
                 <CheckBox
                     x:Name="ShowVisibleOnlyCheckBox"
                     Grid.Column="4"
-                    Click="CheckBox_Checked"
                     Margin="10,0,0,0"
+                    Click="CheckBox_Checked"
                     Content="仅显示可见窗口" />
 
                 <CommandBar
@@ -164,78 +164,103 @@
                         IsActive="False" />
 
                     <ListView
-                            Grid.ColumnSpan="4"
-                            x:Name="WindowListView"
-                            Background="Transparent"
-                            ContainerContentChanging="WindowListView_ContainerContentChanging"
-                            ItemContainerStyle="{StaticResource ListViewItemStyle}"
-                            RightTapped="WindowListView_RightTapped">
+                        x:Name="WindowListView"
+                        Grid.ColumnSpan="4"
+                        Background="Transparent"
+                        ContainerContentChanging="WindowListView_ContainerContentChanging"
+                        ItemContainerStyle="{StaticResource ListViewItemStyle}"
+                        RightTapped="WindowListView_RightTapped">
 
-                            <!--  窗口数据  -->
-                            <ListView.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid Height="50">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="80" />
-                                            <ColumnDefinition Width="100" />
-                                            <ColumnDefinition Width="100" />
-                                        </Grid.ColumnDefinitions>
+                        <!--  窗口数据  -->
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Height="50">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="80" />
+                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="100" />
+                                    </Grid.ColumnDefinitions>
 
-                                        <Image
-                                            Grid.Column="0"
-                                            Width="16"
-                                            Height="16"
-                                            Margin="0,0,16,0"
-                                            VerticalAlignment="Center"
-                                            Source="{Binding Icon}" />
+                                    <Image
+                                        Grid.Column="0"
+                                        Width="16"
+                                        Height="16"
+                                        Margin="0,0,16,0"
+                                        VerticalAlignment="Center"
+                                        Source="{Binding Icon}" />
 
-                                        <!--  窗口名  -->
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock
-                                                FontSize="14"
-                                                Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
-                                                Text="{Binding Name}" />
-                                            <TextBlock
-                                                FontSize="11"
-                                                Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
-                                                Text="{Binding Description}" />
-                                        </StackPanel>
-
-                                        <!--  ZBID  -->
+                                    <!--  窗口名  -->
+                                    <StackPanel
+                                        x:Name="WindowTextContainer"
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center">
                                         <TextBlock
-                                            Grid.Column="2"
-                                            Margin="24,0,0,0"
-                                            HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"
+                                            x:Name="WindowNameTextBlock"
+                                            FontSize="14"
+                                            Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                            Text="{Binding Name}" />
+                                        <essential:MarqueeText
+                                            x:Name="WindowNameMarquee"
+                                            Behavior="Looping"
+                                            Direction="Left"
+                                            FontSize="14"
+                                            Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                            PauseOnHover="True"
+                                            Speed="40"
+                                            Text="{Binding Name}"
+                                            Visibility="Collapsed" />
+                                        <TextBlock
+                                            x:Name="WindowDescriptionTextBlock"
                                             FontSize="12"
                                             Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
-                                            Text="{Binding Band}" />
-
-                                        <!--  样式  -->
-                                        <TextBlock
-                                            Grid.Column="3"
-                                            Margin="24,0,0,0"
-                                            HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"
+                                            Text="{Binding Description}" />
+                                        <essential:MarqueeText
+                                            x:Name="WindowDescriptionMarquee"
+                                            Behavior="Looping"
+                                            Direction="Left"
                                             FontSize="12"
                                             Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
-                                            Text="{Binding WindowStyle}" />
+                                            PauseOnHover="True"
+                                            Speed="40"
+                                            Text="{Binding Description}"
+                                            Visibility="Collapsed" />
+                                    </StackPanel>
 
-                                        <!--  HWND  -->
-                                        <TextBlock
-                                            Grid.Column="4"
-                                            Margin="24,0,0,0"
-                                            HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"
-                                            FontSize="12"
-                                            Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
-                                            Text="{Binding Hwnd}" />
-                                    </Grid>
-                                </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
+                                    <!--  ZBID  -->
+                                    <TextBlock
+                                        Grid.Column="2"
+                                        Margin="24,0,0,0"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="12"
+                                        Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                        Text="{Binding Band}" />
+
+                                    <!--  样式  -->
+                                    <TextBlock
+                                        Grid.Column="3"
+                                        Margin="24,0,0,0"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="12"
+                                        Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                        Text="{Binding WindowStyle}" />
+
+                                    <!--  HWND  -->
+                                    <TextBlock
+                                        Grid.Column="4"
+                                        Margin="24,0,0,0"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="12"
+                                        Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                        Text="{Binding Hwnd}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
                     <Border
                         Grid.Column="1"
                         HorizontalAlignment="Left"
